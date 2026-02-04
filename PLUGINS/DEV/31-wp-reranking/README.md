@@ -3,24 +3,30 @@
 This plugin exposes a REST endpoint that reranks Full‑Text Search (FTS) and Vector Search results into a single, ordered list. It normalizes each score type, combines them, and then sorts the items by the combined score. Each item is annotated with a `position` field to show the final order.
 
 ## Reranking Process (Step‑by‑Step)
+
 1. **Collect inputs**
+
    - Accepts two payloads (`fulltext_search` and `vector_search`) or, when no payload is supplied, fetches the local REST endpoints:
      - `search/v1/search`
      - `search/v1/vector-search`
 2. **Normalize scores**
+
    - Finds the maximum FTS `relevance_score` and the maximum Vector `similarity_score`.
    - Normalizes each item score by dividing by the max of its type.
 3. **Combine scores**
+
    - For each unique `post_id`, it adds:
      - `normalized_relevance + normalized_similarity`
    - This creates a `combined_score` for sorting.
 4. **Sort and assign positions**
+
    - Sorts descending by `combined_score`.
    - Adds `position` starting at 1.
 
 ## Example
 
 ### Input (FTS + Vector)
+
 ```json
 {
   "fulltext_search": {
@@ -39,6 +45,7 @@ This plugin exposes a REST endpoint that reranks Full‑Text Search (FTS) and Ve
 ```
 
 ### Output (Reranked)
+
 ```json
 {
   "success": true,

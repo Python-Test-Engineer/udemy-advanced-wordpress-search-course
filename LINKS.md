@@ -9,3 +9,11 @@
 ## Course Ebook
 
 [https://udemy-advanced-wordpress-search.netlify.app/](https://udemy-advanced-wordpress-search.netlify.app/) - files are also located in `EBOOK`
+
+## Cline
+
+[https://cline.bot/](https://cline.bot/)
+
+## Claude.ai
+
+[https://claude.ai/login](https://claude.ai/login)

@@ -33,6 +33,7 @@ The plugin follows WordPress best practices with a single-class architecture tha
 **Location**: `04-wp-fts-tool.php`
 
 **Responsibilities**:
+
 - Admin interface management
 - AJAX request handling
 - Search algorithm implementations
@@ -65,18 +66,21 @@ add_action('wp_ajax_fts_search', array($this, 'handle_search'));
 **Hook Breakdown**:
 
 1. **`admin_menu`** (Line 23)
+
    - Registers the plugin's admin page
    - Creates a top-level menu item with dashicons-search icon
    - Menu position: 3.4 (below Dashboard)
    - Required capability: `manage_options`
 
 2. **`admin_enqueue_scripts`** (Line 24)
+
    - Conditionally loads assets only on the plugin's admin page
    - Prevents unnecessary resource loading on other admin pages
    - Enqueues CSS and JavaScript files
    - Localizes JavaScript with AJAX URL and nonce
 
 3. **`wp_ajax_fts_search`** (Line 25)
+
    - Handles AJAX search requests from authenticated users
    - Endpoint: `admin-ajax.php?action=fts_search`
    - Returns JSON responses
@@ -138,6 +142,7 @@ public function __construct() {
 | `init_documents()` | Corpus initialization | O(1) | 55-108 |
 
 Where:
+
 - `n` = number of documents
 - `m` = number of query terms
 
@@ -172,6 +177,7 @@ displayResults() - Render to DOM
 ### Security Measures
 
 1. **Direct Access Prevention**
+
    ```php
    if (!defined('ABSPATH')) {
        exit;
@@ -179,17 +185,20 @@ displayResults() - Render to DOM
    ```
 
 2. **Nonce Verification**
+
    ```php
    check_ajax_referer('fts_search_nonce', 'nonce');
    ```
 
 3. **Input Sanitization**
+
    ```php
    $query = sanitize_text_field($_POST['query']);
    $method = sanitize_text_field($_POST['method']);
    ```
 
 4. **Capability Checks**
+
    ```php
    'manage_options'  // Only administrators can access
    ```
@@ -199,16 +208,19 @@ displayResults() - Render to DOM
 #### JavaScript Structure
 
 **Event Handlers**:
+
 - Search button click handler
 - Enter key press handler for search input
 - AJAX success/error handlers
 
 **Key Functions**:
+
 - `displayResults(results, method)` - Renders search results with rankings
 
 #### CSS Architecture
 
 **Component Classes**:
+
 - `.fts-container` - Main grid layout (70/30 split)
 - `.fts-search-panel` - Left column with search form
 - `.fts-results-panel` - Right column with results display
@@ -216,6 +228,7 @@ displayResults() - Render to DOM
 - `.fts-document` - Document card in corpus view
 
 **Color Scheme**:
+
 - Primary: `#2271b1` (WordPress blue)
 - Success: `#46b450` (green)
 - Background: `#f5f5f5` (light gray)
@@ -225,19 +238,19 @@ displayResults() - Render to DOM
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    User Interface (Admin Page)               │
-│                                                              │
-│  ┌─────────────┐    ┌──────────────┐    ┌───────────────┐  │
+│                    User Interface (Admin Page)              │
+│                                                             │
+│  ┌─────────────┐    ┌──────────────┐    ┌────────────────┐  │
 │  │ Search Form │───▶│ AJAX Request │───▶│ Results Panel │  │
-│  └─────────────┘    └──────────────┘    └───────────────┘  │
+│  └─────────────┘    └──────────────┘    └────────────────┘  │
 │         │                   │                    ▲          │
 └─────────┼───────────────────┼────────────────────┼──────────┘
           │                   │                    │
           ▼                   ▼                    │
 ┌──────────────────┐  ┌──────────────────┐  ┌─────────────┐
 │ jQuery Handler   │  │ WordPress AJAX   │  │ JSON        │
-│ - Validation     │──▶│ - Nonce Check   │──▶│ Response    │
-│ - Serialize Data │  │ - Sanitization  │  │             │
+│ - Validation     │──▶│ - Nonce Check   │──▶│ Response  │
+│ - Serialize Data │  │ - Sanitization   │  │              │
 └──────────────────┘  └──────────────────┘  └─────────────┘
                               │
                               ▼

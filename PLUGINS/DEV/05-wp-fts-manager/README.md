@@ -39,11 +39,13 @@ class FTS_Manager {
 #### 2. **Target Table**
 
 The plugin targets the `wp_products` table (where `wp_` is your database prefix). The table is expected to have these columns:
+
 - `product_name`
 - `product_short_description`
 - `expanded_description`
 
 **To adapt to different tables**: Modify line 23 in the constructor:
+
 ```php
 $this->table_name = $wpdb->prefix . 'your_table_name';
 ```
@@ -77,12 +79,14 @@ The admin page is divided into two main sections using CSS Grid:
 #### Left Panel: Index Management (420px wide)
 
 **Current Indexes Display**
+
 - Lists all existing FULLTEXT indexes
 - Shows index name, columns included, and index type
 - Provides delete functionality for each index
 - Real-time refresh capability
 
 **Create New Index Form**
+
 - Custom index name input
 - Checkbox selection for columns to include:
   - `product_name`
@@ -93,6 +97,7 @@ The admin page is divided into two main sections using CSS Grid:
 #### Right Panel: Query Testing (Flexible width)
 
 **Search Configuration**
+
 - **Search Query Input**: Free-text search terms
 - **Search Mode Selector**:
   - Natural Language Mode (default relevance ranking)
@@ -101,6 +106,7 @@ The admin page is divided into two main sections using CSS Grid:
 - **Result Limit**: 1-100 results
 
 **Results Display**
+
 - Product information in styled cards
 - Visual relevance score bars
 - Color-coded relevance indicators
@@ -120,6 +126,7 @@ MATCH(columns) AGAINST('search term')
 **Best for**: General searches, finding most relevant content
 
 #### 2. Boolean Mode
+
 Supports advanced search operators:
 
 | Operator | Function | Example |
@@ -139,6 +146,7 @@ MATCH(columns) AGAINST('+camera -smart' IN BOOLEAN MODE)
 **Best for**: Precise filtering, complex queries, power users
 
 #### 3. Query Expansion Mode
+
 MySQL automatically finds related terms based on the dataset.
 
 ```sql
@@ -197,18 +205,21 @@ $wpdb->get_results("SHOW INDEX FROM {$table_name} WHERE Index_type = 'FULLTEXT'"
 Groups results by index name to show multi-column indexes.
 
 #### Creating Indexes
+
 ```sql
 ALTER TABLE wp_products 
 ADD FULLTEXT INDEX index_name (column1, column2, column3)
 ```
 
 #### Deleting Indexes
+
 ```sql
 ALTER TABLE wp_products 
 DROP INDEX index_name
 ```
 
 #### Search Query Structure
+
 ```sql
 SELECT 
     product_name, 
@@ -222,6 +233,7 @@ LIMIT 10
 ```
 
 **Key Points**:
+
 - `MATCH` must use the same columns in both SELECT and WHERE
 - Relevance score is calculated automatically by MySQL
 - Results ordered by relevance (highest first)
@@ -231,6 +243,7 @@ LIMIT 10
 ### Implemented Security Measures
 
 1. **Direct Access Prevention**
+
    ```php
    if (!defined('ABSPATH')) {
        exit;
@@ -238,16 +251,19 @@ LIMIT 10
    ```
 
 2. **Capability Checks**
+
    - All admin pages require `manage_options` capability
    - Only administrators can manage indexes
 
 3. **Input Sanitization**
+
    ```php
    $index_name = sanitize_text_field($_POST['index_name']);
    $columns = array_map('sanitize_text_field', $_POST['columns']);
    ```
 
 4. **Prepared Statements**
+
    ```php
    $wpdb->prepare("SELECT ... WHERE Key_name = %s", $index_name)
    ```
@@ -260,6 +276,7 @@ LIMIT 10
 ### Security Recommendations
 
 ⚠️ **Important**: Consider adding:
+
 - AJAX nonce verification for all AJAX handlers
 - Additional validation for table/column names
 - Rate limiting for query execution
@@ -275,10 +292,10 @@ LIMIT 10
          ▼
 ┌─────────────────────────────────┐
 │   WordPress Admin Interface     │
-│  ┌──────────┐    ┌──────────┐  │
-│  │  Index   │    │  Query   │  │
-│  │  Manager │    │  Tester  │  │
-│  └─────┬────┘    └────┬─────┘  │
+│  ┌──────────┐    ┌──────────┐   │
+│  │  Index   │    │  Query   │   │
+│  │  Manager │    │  Tester  │   │
+│  └─────┬────┘    └────┬─────┘   │
 └────────┼──────────────┼─────────┘
          │              │
          ▼              ▼
@@ -325,16 +342,19 @@ LIMIT 10
 ### Best Practices
 
 #### Index Creation
+
 - **Single column indexes**: Fast, specific searches
 - **Multi-column indexes**: Comprehensive searches, slightly slower
 - **Index naming**: Use descriptive names like `ft_product_name` or `ft_all_fields`
 
 #### Search Optimization
+
 - Use Boolean mode for precise filtering
 - Natural mode for general searches
 - Query expansion for discovery/related content
 
 #### Performance Considerations
+
 - FULLTEXT indexes require MyISAM or InnoDB (MySQL 5.6+)
 - Minimum word length: typically 4 characters (MySQL default)
 - Stop words (common words like "the", "a") are automatically excluded
@@ -424,6 +444,7 @@ The plugin displays several performance indicators:
 ## Localization Support
 
 The plugin is translation-ready:
+
 - Text domain: `fts-manager`
 - All strings wrapped in `esc_html__()` or `_e()`
 - Translation files should go in: `/languages/fts-manager-{locale}.mo`
@@ -431,6 +452,7 @@ The plugin is translation-ready:
 ## Code Quality Notes
 
 ### Strengths
+
 ✅ Clean separation of concerns  
 ✅ WordPress coding standards followed  
 ✅ Comprehensive error logging  
@@ -439,6 +461,7 @@ The plugin is translation-ready:
 ✅ Real-time results display  
 
 ### Areas for Enhancement
+
 ⚠️ Add AJAX nonce verification  
 ⚠️ Implement user capability checks in AJAX handlers  
 ⚠️ Add unit tests for core functionality  

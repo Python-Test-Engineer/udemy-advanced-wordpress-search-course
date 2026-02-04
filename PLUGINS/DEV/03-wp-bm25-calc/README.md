@@ -230,6 +230,7 @@ public function score($query, $document, $docIndex = 0) {
 Let's search for "smart led" across three products:
 
 ### Documents
+
 1. "Smart LED bulb" (3 words)
 2. "LED light fixture" (3 words)
 3. "Smart home automation system with LED controls" (7 words)
@@ -237,6 +238,7 @@ Let's search for "smart led" across three products:
 ### Calculation
 
 **Query: "smart led"**
+
 - Average document length: (3+3+7)/3 = 4.33 words
 - k1 = 1.5, b = 0.75
 
@@ -259,16 +261,19 @@ Term "led":
 **Total score: -1.543**
 
 **Document 2: "LED light fixture"**
+
 - Only contains "led", not "smart"
 - Term score for "led": -1.044
 - **Total score: -1.044**
 
 **Document 3: "Smart home automation..."**
+
 - Longer document (7 words) gets penalized more
 - Both terms present but diluted
 - **Total score: -1.891** (penalized for length)
 
 ### Results Ranking
+
 1. Document 2: -1.044 (best score)
 2. Document 1: -1.543
 3. Document 3: -1.891
@@ -494,6 +499,7 @@ function test_bm25_basic_scoring() {
 **Cause:** Query terms appear in most/all documents (high document frequency)
 
 **Solution:** 
+
 - Increase corpus size
 - Use more specific search terms
 - Add field weighting to boost important fields
@@ -503,6 +509,7 @@ function test_bm25_basic_scoring() {
 **Cause:** Default parameters (k1=1.5, b=0.75) don't fit your content
 
 **Solution:**
+
 - Adjust k1 for your document lengths
 - Adjust b based on length variation
 - Use the admin UI to test different values
@@ -512,6 +519,7 @@ function test_bm25_basic_scoring() {
 **Cause:** Calculating TF/DF for every query is expensive
 
 **Solution:**
+
 - Cache document frequencies
 - Pre-process and tokenize documents
 - Use MySQL FULLTEXT for production
