@@ -42,8 +42,29 @@ We can test each after installing it...
 
 `PLUGINS\ZIPS` - load in all the  course plugins.
 
----
+### SQL Scripts
 
-2. ## RESTORE FROM WPRESS BACKUP
+#### Articles table
 
-Using `PLUGINS\WP-UTILITY\02_ALL_IN_ONE_32GB.zip` that has been loaded, import the UEDEMY-ADVANCED-WORDPRESS-SEARCH.wpress file as shown in lesson.
+Article table that MySQL docs uses:
+
+`SQL\ARTICLES\articles.sql`
+
+Posts that MySQL docs use for WP Posts examples:
+
+`SQL\ARTICLES\mysql-docs-data.sql`
+
+#### wp_products
+
+`SQL\PRODUCTS\create_wp_products.sql` - create table.
+
+`SQL\PRODUCTS\create_and_insert_wp_products.sql` - insert data.
+
+#### WP Posts index
+
+`SQL\WP-POSTS\index.sql` = create index for WP Posts examples.
+
+
+## 2. RESTORE FROM WPRESS BACKUP
+
+Using `PLUGINS\WP-UTILITY\02_ALL_IN_ONE_32GB.zip` that has been loaded, import the UEDEMY-ADVANCED-WORDPRESS-SEARCH.wpress file as shown in lesson. It is attached to lesson on restoring this backup.
