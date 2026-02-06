@@ -178,16 +178,16 @@ class WP_Reranking_Plugin {
             );
         }
 
-        if ($query !== '') {
+            if ($query !== '') {
             $fulltext_before_filter = count($fulltext_results);
             $vector_before_filter = count($vector_results);
 
             $fulltext_results = array_values(array_filter($fulltext_results, function ($item) use ($query) {
-                return $this->item_matches_query($item, $query);
+                return $this->item_matches_query($item, $query, true);
             }));
 
             $vector_results = array_values(array_filter($vector_results, function ($item) use ($query) {
-                return $this->item_matches_query($item, $query);
+                return $this->item_matches_query($item, $query, true);
             }));
 
             $this->log_debug('Query filter applied.', array(
@@ -218,8 +218,8 @@ class WP_Reranking_Plugin {
         // Enforce top N per method before normalization/merge.
         if (!empty($fulltext_results)) {
             usort($fulltext_results, function ($a, $b) {
-                $a_score = isset($a['relevance_score']) ? $a['relevance_score'] : 0;
-                $b_score = isset($b['relevance_score']) ? $b['relevance_score'] : 0;
+                $a_score = $this->get_relevance_score($a);
+                $b_score = $this->get_relevance_score($b);
                 return $b_score <=> $a_score;
             });
             $fulltext_results = array_slice($fulltext_results, 0, $per_method_limit);
@@ -227,8 +227,8 @@ class WP_Reranking_Plugin {
 
         if (!empty($vector_results)) {
             usort($vector_results, function ($a, $b) {
-                $a_score = isset($a['similarity_score']) ? $a['similarity_score'] : 0;
-                $b_score = isset($b['similarity_score']) ? $b['similarity_score'] : 0;
+                $a_score = $this->get_similarity_score($a);
+                $b_score = $this->get_similarity_score($b);
                 return $b_score <=> $a_score;
             });
             $vector_results = array_slice($vector_results, 0, $per_method_limit);
@@ -252,8 +252,9 @@ class WP_Reranking_Plugin {
         // Capture the max relevance score to normalize later.
         if (!empty($fulltext_results)) {
             foreach ($fulltext_results as $item) {
-                if (isset($item['relevance_score']) && $item['relevance_score'] > $max_relevance) {
-                    $max_relevance = $item['relevance_score'];
+                $score = $this->get_relevance_score($item);
+                if ($score > $max_relevance) {
+                    $max_relevance = $score;
                 }
             }
         }
@@ -261,8 +262,9 @@ class WP_Reranking_Plugin {
         // Capture the max similarity score to normalize later.
         if (!empty($vector_results)) {
             foreach ($vector_results as $item) {
-                if (isset($item['similarity_score']) && $item['similarity_score'] > $max_similarity) {
-                    $max_similarity = $item['similarity_score'];
+                $score = $this->get_similarity_score($item);
+                if ($score > $max_similarity) {
+                    $max_similarity = $score;
                 }
             }
         }
@@ -292,7 +294,7 @@ class WP_Reranking_Plugin {
                     continue;
                 }
                 $items[$post_id] = array_merge($item, array(
-                    'relevance_score' => isset($item['relevance_score']) ? $item['relevance_score'] : 0,
+                    'relevance_score' => $this->get_relevance_score($item),
                     'similarity_score' => 0,
                 ));
             }
@@ -308,10 +310,10 @@ class WP_Reranking_Plugin {
                 if (!isset($items[$post_id])) {
                     $items[$post_id] = array_merge($item, array(
                         'relevance_score' => 0,
-                        'similarity_score' => isset($item['similarity_score']) ? $item['similarity_score'] : 0,
+                        'similarity_score' => $this->get_similarity_score($item),
                     ));
                 } else {
-                    $items[$post_id]['similarity_score'] = isset($item['similarity_score']) ? $item['similarity_score'] : 0;
+                    $items[$post_id]['similarity_score'] = $this->get_similarity_score($item);
                 }
             }
         }
@@ -328,7 +330,8 @@ class WP_Reranking_Plugin {
         foreach ($items as $post_id => $item) {
             $normalized_relevance = isset($item['relevance_score']) ? ($item['relevance_score'] / $max_relevance) : 0;
             $normalized_similarity = isset($item['similarity_score']) ? ($item['similarity_score'] / $max_similarity) : 0;
-            $items[$post_id]['combined_score'] = $normalized_relevance + $normalized_similarity;
+            $title_boost = $this->get_title_keyword_boost($item, $query);
+            $items[$post_id]['combined_score'] = $normalized_relevance + $normalized_similarity + $title_boost;
         }
 
         if ($explain) {
@@ -391,6 +394,18 @@ class WP_Reranking_Plugin {
         $position = 1;
         foreach ($items as $index => $item) {
             $items[$index]['position'] = $position;
+            $relevance = isset($item['relevance_score']) ? floatval($item['relevance_score']) : 0;
+            $similarity = isset($item['similarity_score']) ? floatval($item['similarity_score']) : 0;
+
+            if ($relevance > 0 && $similarity > 0) {
+                $items[$index]['method'] = 'FTS+VECTOR';
+            } elseif ($relevance > 0) {
+                $items[$index]['method'] = 'FTS';
+            } elseif ($similarity > 0) {
+                $items[$index]['method'] = 'VECTOR';
+            } else {
+                $items[$index]['method'] = 'UNKNOWN';
+            }
             unset($items[$index]['combined_score']);
             $position++;
         }
@@ -473,7 +488,7 @@ class WP_Reranking_Plugin {
     /**
      * Check if a result item contains the query text in key fields.
      */
-    private function item_matches_query($item, $query) {
+    private function item_matches_query($item, $query, $require_tokens = false) {
         if ($query === '') {
             return true;
         }
@@ -482,12 +497,132 @@ class WP_Reranking_Plugin {
             return false;
         }
 
-        $title = !empty($item['post_title']) ? mb_strtolower($item['post_title']) : '';
-        $content = !empty($item['content']) ? mb_strtolower($item['content']) : '';
-        $needle = mb_strtolower($query);
+        $fields = array(
+            'post_title',
+            'content',
+            'excerpt',
+            'post_content',
+            'categories',
+            'tags'
+        );
 
-        return ($title !== '' && strpos($title, $needle) !== false)
-            || ($content !== '' && strpos($content, $needle) !== false);
+        $haystack = '';
+        foreach ($fields as $field) {
+            if (!empty($item[$field])) {
+                $haystack .= ' ' . $item[$field];
+            }
+        }
+
+        $haystack = mb_strtolower(trim($haystack));
+        if ($haystack === '') {
+            return false;
+        }
+
+        $needle = mb_strtolower(trim($query));
+        if ($needle !== '' && strpos($haystack, $needle) !== false) {
+            return true;
+        }
+
+        $tokens = preg_split('/\s+/', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $needle));
+        $tokens = array_values(array_filter($tokens, function ($token) {
+            return mb_strlen($token) >= 2;
+        }));
+
+        if (empty($tokens)) {
+            return !$require_tokens;
+        }
+
+        $matched = 0;
+        foreach ($tokens as $token) {
+            if (strpos($haystack, $token) !== false) {
+                $matched++;
+            }
+        }
+
+        if ($require_tokens) {
+            return $matched > 0;
+        }
+
+        return $matched > 0;
+    }
+
+    /**
+     * Boost combined score when query keywords appear in the title.
+     */
+    private function get_title_keyword_boost($item, $query) {
+        if ($query === '' || !is_array($item)) {
+            return 0;
+        }
+
+        $title = !empty($item['post_title']) ? mb_strtolower($item['post_title']) : '';
+        if ($title === '') {
+            return 0;
+        }
+
+        $needle = mb_strtolower(trim($query));
+        if ($needle !== '' && strpos($title, $needle) !== false) {
+            return 0.2;
+        }
+
+        $tokens = preg_split('/\s+/', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $needle));
+        $tokens = array_values(array_filter($tokens, function ($token) {
+            return mb_strlen($token) >= 2;
+        }));
+
+        if (empty($tokens)) {
+            return 0;
+        }
+
+        $matched = 0;
+        foreach ($tokens as $token) {
+            if (strpos($title, $token) !== false) {
+                $matched++;
+            }
+        }
+
+        if ($matched === 0) {
+            return 0;
+        }
+
+        return min(0.2, 0.05 * $matched);
+    }
+
+    /**
+     * Normalize relevance score field names from different endpoints.
+     */
+    private function get_relevance_score($item) {
+        if (!is_array($item)) {
+            return 0;
+        }
+
+        if (isset($item['relevance_score'])) {
+            return floatval($item['relevance_score']);
+        }
+
+        if (isset($item['score'])) {
+            return floatval($item['score']);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Normalize similarity score field names from different endpoints.
+     */
+    private function get_similarity_score($item) {
+        if (!is_array($item)) {
+            return 0;
+        }
+
+        if (isset($item['similarity_score'])) {
+            return floatval($item['similarity_score']);
+        }
+
+        if (isset($item['similarity'])) {
+            return floatval($item['similarity']);
+        }
+
+        return 0;
     }
 
     /**
@@ -624,6 +759,50 @@ class WP_Reranking_Plugin {
 
         ?>
         <div class="wrap">
+            <style>
+                .toplevel_page_wp-reranking .wp-reranking-results {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: 16px;
+                    margin-top: 16px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-card {
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    padding: 16px;
+                    background: #ffffff;
+                    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+                }
+                .toplevel_page_wp-reranking .wp-reranking-card h4 {
+                    margin: 0 0 8px;
+                    font-size: 16px;
+                    color: #111827;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-meta {
+                    font-size: 12px;
+                    color: #6b7280;
+                    margin-bottom: 8px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-badges {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin-bottom: 8px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-badge {
+                    background: #f3f4f6;
+                    color: #111827;
+                    border-radius: 999px;
+                    padding: 4px 10px;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-excerpt {
+                    font-size: 13px;
+                    color: #374151;
+                    line-height: 1.5;
+                }
+            </style>
             <h1>Reranker Test Page</h1>
             <p>Fetch hybrid search results from <code><?php echo esc_html(home_url('/wp-json/search/v1/hybrid-search')); ?></code> and rerank them.</p>
             <!-- Simple admin-side console log for quick debugging -->
@@ -687,6 +866,30 @@ class WP_Reranking_Plugin {
                 <?php else: ?>
                     <h2>Reranked Response</h2>
                     <pre><?php echo esc_html(json_encode($output, JSON_PRETTY_PRINT)); ?></pre>
+                <?php endif; ?>
+                <?php if (isset($output['results']) && is_array($output['results']) && !empty($output['results'])): ?>
+                    <h2>Final Results</h2>
+                    <div class="wp-reranking-results">
+                        <?php foreach ($output['results'] as $result): ?>
+                            <div class="wp-reranking-card">
+                                <h4><?php echo esc_html($result['post_title'] ?? 'Untitled'); ?></h4>
+                                <div class="wp-reranking-meta">
+                                    Post ID: <?php echo esc_html($result['post_id'] ?? 'N/A'); ?> · Position: <?php echo esc_html($result['position'] ?? 'N/A'); ?>
+                                </div>
+                                <div class="wp-reranking-badges">
+                                    <span class="wp-reranking-badge">Method: <?php echo esc_html($result['method'] ?? 'UNKNOWN'); ?></span>
+                                    <span class="wp-reranking-badge">Relevance: <?php echo esc_html(number_format($result['relevance_score'] ?? 0, 4)); ?></span>
+                                    <span class="wp-reranking-badge">Similarity: <?php echo esc_html(number_format($result['similarity_score'] ?? 0, 4)); ?></span>
+                                </div>
+                                <div class="wp-reranking-excerpt">
+                                    <?php
+                                    $excerpt = $result['excerpt'] ?? $result['content'] ?? $result['post_content'] ?? '';
+                                    echo esc_html(wp_trim_words($excerpt, 28, '...'));
+                                    ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
