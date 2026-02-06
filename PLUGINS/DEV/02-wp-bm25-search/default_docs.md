@@ -1,0 +1,14 @@
+DOC01 - Smart glasses are cool.
+DOC02-b - EFFECT OF LONGER DOCS. These contain more keyword terms just because the are longer but may be less dense. Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.
+DOC3-k1 - EFFECT OF KEY WORD STUFFING. Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. smart learn Python basics and start coding today. Smart Advanced machine learning techniques using TensorFlow and  smart PyTorch for deep learning smartapplications.Python web development with Django and Flask frameworks. The second smart document is much longer than the first, so it gets penalized more heavily as we increase.
+Introduction to Python programming for beginners. Learn Python basics and start coding today.
+Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.
+Unique word only occurs in one document. This should have a high IDF score and boost the overall BM25 score when searching for unique.
+Python web development with Django and Flask frameworks. Build modern web applications quickly.
+Data science with Python: pandas, numpy, and matplotlib for data analysis and visualization.
+JavaScript vs Python: comparing two popular programming languages for web development.
+Machine learning algorithms explained: supervised learning, unsupervised learning, and reinforcement learning.
+Getting started with PHP and MySQL for database-driven web applications.
+Python automation scripts for everyday tasks. Automate your workflow with Python.
+Natural language processing with Python and NLTK library for text analysis.
+Building RESTful APIs with Python Flask and authentication best practices.

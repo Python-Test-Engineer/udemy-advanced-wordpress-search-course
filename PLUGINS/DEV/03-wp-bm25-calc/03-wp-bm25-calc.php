@@ -207,12 +207,27 @@ class BM25_Calculation_Plugin {
         
         $existing_indexes = $this->get_existing_indexes($table_name);
         
-        // Load products from database
-        $products = $wpdb->get_results(
-            "SELECT id, product_name, product_short_description, expanded_description
+        $products_sql = "SELECT id, product_name, product_short_description, expanded_description
              FROM {$table_name}
              WHERE product_name IS NOT NULL AND product_name != ''
-             LIMIT 100",
+             LIMIT 100";
+
+        $documents_columns = ['product_name', 'product_short_description', 'expanded_description'];
+        $documents_columns_sorted = $documents_columns;
+        sort($documents_columns_sorted);
+        $bm25_index_name = 'None (no matching full-text index)';
+        foreach ($existing_indexes as $index) {
+            $columns_sorted = $index['columns'];
+            sort($columns_sorted);
+            if ($columns_sorted === $documents_columns_sorted) {
+                $bm25_index_name = $index['name'];
+                break;
+            }
+        }
+        
+        // Load products from database
+        $products = $wpdb->get_results(
+            $products_sql,
             ARRAY_A
         );
         $product_names = array_map(function($p) { return $p['product_name']; }, $products);
@@ -227,9 +242,10 @@ class BM25_Calculation_Plugin {
                 <p><?php echo esc_html($message); ?></p>
             </div>
             <?php endif; ?>
-            
+<!--             
             <div class="index-mgmt">
                 <h2>📊 Full-Text Search Index Management</h2>
+                <h2>This uses the `wp_products` table in the WordPress database.</h2>
                 
                 <div class="current-idx">
                     <h3>Current Full-Text Search Indexes</h3>
@@ -316,14 +332,14 @@ class BM25_Calculation_Plugin {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </div> -->
             
             <div class="bm25-grid">
                 <div class="bm25-box">
                     <h2>Search Configuration</h2>
                     <div class="fg">
                         <label for="bm25-query">Query:</label>
-                        <input type="text" id="bm25-query" class="widefat" value="smart led">
+                        <input type="text" id="bm25-query" class="widefat" value="Electric Milk Frother">
                     </div>
                     <div class="fg">
                         <label for="bm25-limit">Limit:</label>
@@ -392,6 +408,10 @@ class BM25_Calculation_Plugin {
             $('#bm25-b').on('input',function(){$('#b-value').text($(this).val())});
             
             const productData = <?php echo wp_json_encode($products); ?>;
+            const bm25Meta = <?php echo wp_json_encode([
+                'sql' => $products_sql,
+                'index' => $bm25_index_name
+            ]); ?>;
 
             $('#bm25-calculate').on('click',function(){
                 const query=$('#bm25-query').val(),k1=$('#bm25-k1').val(),b=$('#bm25-b').val(),
@@ -404,13 +424,23 @@ class BM25_Calculation_Plugin {
                 $.ajax({url:bm25Ajax.ajax_url,type:'POST',data:{action:'bm25_calculate',nonce:bm25Ajax.nonce,query,k1,b,limit,documents},
                     success:r=>r.success&&displayResults(r.data,query,k1,b)});
             });
+            function escapeHtml(value){
+                return String(value)
+                    .replace(/&/g,'&amp;')
+                    .replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;')
+                    .replace(/"/g,'&quot;')
+                    .replace(/'/g,'&#039;');
+            }
+
             function displayResults(data,query,k1,b){
                 $('#bm25-stats').html(`<div class="stats-grid">
                     <div class="stat-item"><div class="stat-label">Docs</div><div class="stat-value">${data.total_docs}</div></div>
                     <div class="stat-item"><div class="stat-label">Avg Length</div><div class="stat-value">${data.avgdl.toFixed(2)}</div></div>
                     <div class="stat-item"><div class="stat-label">k1</div><div class="stat-value">${k1}</div></div>
                     <div class="stat-item"><div class="stat-label">b</div><div class="stat-value">${b}</div></div>
-                </div>`);
+                </div>
+                `);
                 let rh='';
                 data.results.forEach((r,i)=>{
                     const rank=i+1,medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`#${rank}`;

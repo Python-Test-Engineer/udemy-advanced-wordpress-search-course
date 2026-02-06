@@ -50,7 +50,11 @@ class BM25_Search_Plugin {
      * Get default documents
      */
     private function get_default_documents() {
-        return "Introduction to Python programming for beginners. Learn Python basics and start coding today.
+        return "DOC01 - Smart glasses are cool.
+DOC02-b - EFFECT OF LONGER DOCS. These contain more keyword terms just because the are longer but may be less dense. Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. earn Python basics and start coding today. Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.Python web development with Django and Flask frameworks. The second document is much longer than the first, so it gets penalized more heavily as we increase b.
+DOC3-k1 - EFFECT OF KEY WORD STUFFING. Smart glasses are cool and smart people wear them with smart shoes. We can see the effect of the b parameter here. smart learn Python basics and start coding today. Smart Advanced machine learning techniques using TensorFlow and  smart PyTorch for deep learning smartapplications.Python web development with Django and Flask frameworks. The second smart document is much longer than the first, so it gets penalized more heavily as we increase.
+UNIQUE word only occurs in one document. This should have a high IDF score and boost the overall BM25 score when searching for UNIQUE words.
+Introduction to Python programming for beginners. Learn Python basics and start coding today.
 Advanced machine learning techniques using TensorFlow and PyTorch for deep learning applications.
 Python web development with Django and Flask frameworks. Build modern web applications quickly.
 Data science with Python: pandas, numpy, and matplotlib for data analysis and visualization.
@@ -59,7 +63,9 @@ Machine learning algorithms explained: supervised learning, unsupervised learnin
 Getting started with PHP and MySQL for database-driven web applications.
 Python automation scripts for everyday tasks. Automate your workflow with Python.
 Natural language processing with Python and NLTK library for text analysis.
-Building RESTful APIs with Python Flask and authentication best practices.";
+Building RESTful APIs with Python Flask and authentication best practices.
+
+";
     }
     
     /**
@@ -74,6 +80,13 @@ Building RESTful APIs with Python Flask and authentication best practices.";
             $documents_text = sanitize_textarea_field($_POST['documents']);
             update_option($this->option_name, $documents_text);
             echo '<div class="notice notice-success is-dismissible"><p>Documents saved successfully!</p></div>';
+        }
+
+        // Handle reset to default documents
+        if (isset($_POST['reset_documents']) && check_admin_referer('bm25_save_docs')) {
+            $documents_text = $this->get_default_documents();
+            update_option($this->option_name, $documents_text);
+            echo '<div class="notice notice-success is-dismissible"><p>Documents reset to defaults!</p></div>';
         }
         
         // Handle search
@@ -118,7 +131,7 @@ Building RESTful APIs with Python Flask and authentication best practices.";
                 <h3>BM25 Parameters</h3>
                 <dl>
                     <dt><strong>k1 (Saturation Parameter)</strong></dt>
-                    <dd>Controls how much additional occurrences of a term contribute to the score. Higher values (e.g., 2.0) make the score more sensitive to term frequency, while lower values (e.g., 0.5) cause saturation earlier. Typical range: 1.2-2.0, default: 1.5.</dd>
+                    <dd>Controls how much additional occurrences of a term contribute to the score. Higher values means it takes longer to reach saturation and so the final score will be higher as the TF is larger. Typical range: 1.2-2.0, default: 1.5.</dd>
 
                     <dt><strong>b (Length Normalization Parameter)</strong></dt>
                     <dd>Controls the degree of document length normalization. Higher values (e.g., 0.75) heavily penalize long documents, while lower values (e.g., 0.25) reduce this effect. Set to 0 for no length normalization, 1 for full normalization. Default: 0.75.</dd>
@@ -160,8 +173,8 @@ Building RESTful APIs with Python Flask and authentication best practices.";
                                     name="search_query"
                                     id="search_query"
                                     class="regular-text"
-                                    value="<?php echo esc_attr($search_query); ?>"
-                                    placeholder="e.g., python programming">
+                                    value="smart"
+                                   >
                                 <button type="submit" class="button button-primary">Search</button>
                             </td>
                         </tr>
@@ -176,7 +189,7 @@ Building RESTful APIs with Python Flask and authentication best practices.";
                                     id="k1"
                                     step="0.1"
                                     min="0.1"
-                                    max="5.0"
+                                    max="555.0"
                                     value="<?php echo esc_attr($k1); ?>">
                                 <small>Default: 1.5</small>
                             </td>
@@ -295,6 +308,7 @@ Building RESTful APIs with Python Flask and authentication best practices.";
                 </table>
                 
                 <h3>Term-by-term Breakdown:</h3>
+                <p style="font-size: 1.25rem;"><b>'Document Frequency'</b> is the number of documents in the corpus that contain a given term at least once. This is used to calculate the IDF component of the BM25 score, which helps to downweight common terms that appear in many documents and upweight rare terms that are more distinctive.</p>
                 <table class="wp-list-table widefat striped">
                     <thead>
                         <tr>
