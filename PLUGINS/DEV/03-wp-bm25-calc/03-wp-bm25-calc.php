@@ -210,7 +210,7 @@ class BM25_Calculation_Plugin {
         $products_sql = "SELECT id, product_name, product_short_description, expanded_description
              FROM {$table_name}
              WHERE product_name IS NOT NULL AND product_name != ''
-             LIMIT 100";
+             ";
 
         $documents_columns = ['product_name', 'product_short_description', 'expanded_description'];
         $documents_columns_sorted = $documents_columns;
@@ -357,9 +357,9 @@ class BM25_Calculation_Plugin {
                         <p class="description">Typical range: 0.5-0.8</p>
                     </div>
                     <div class="fg">
-                        <label for="bm25-documents">Documents (one per line):</label>
+                        <label for="bm25-documents">Product Names (one per line):</label>
                         <textarea id="bm25-documents" rows="8" class="widefat"><?php echo esc_textarea($documents_text); ?></textarea>
-                        <p class="description">Product names from wp_products table (max 100)</p>
+                        <p class="description">Product names from wp_products table</p>
                     </div>
                     <button id="bm25-calculate" class="button button-primary button-large">Calculate</button>
                 </div>
