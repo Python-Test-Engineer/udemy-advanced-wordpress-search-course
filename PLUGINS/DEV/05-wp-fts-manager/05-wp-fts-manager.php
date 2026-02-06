@@ -148,6 +148,43 @@ port*
             </div>
             
             <div id="fts-message"></div>
+            
+<div id="fts-example-rhs">
+  <h2>WordPress Full-Text Search Boolean Syntax</h2>
+  <p>WordPress uses MySQL's Boolean mode for full-text search, which gives you powerful query capabilities beyond simple keyword matching. Here's how the syntax works in practice:</p>
+
+  <h3>Basic Operators</h3>
+  
+  <p><strong>The Plus (<code>+</code>) - Required Word</strong><br>
+  When you search for <code>+security +plugin</code>, WordPress will only return posts that contain BOTH words. This is an AND operation. Without the plus, MySQL treats words as optional (OR by default in natural language mode, but Boolean mode changes this behavior).</p>
+
+  <p><strong>The Minus (<code>-</code>) - Exclusion</strong><br>
+  Searching for <code>theme -premium</code> finds all posts about themes but excludes any mentioning "premium". This is particularly useful for filtering out unwanted results.</p>
+
+  <p><strong>Phrase Matching with Quotes</strong><br>
+  Using <code>"responsive design"</code> searches for that exact phrase in that exact order. Without quotes, <code>responsive design</code> would match posts containing both words anywhere, not necessarily together.</p>
+
+  <h3>Wildcards and Partial Matching</h3>
+  
+  <p><strong>The Asterisk (<code>*</code>) - Wildcard</strong><br>
+  Search for <code>develop*</code> and you'll match "developer", "development", "developing", "develops". This is excellent for catching variations of a word. Note that the wildcard only works at the end of a word stem, and the stem must be at least 3-4 characters depending on your MySQL configuration.</p>
+
+  <h3>Grouping and Precedence</h3>
+  
+  <p><strong>Parentheses for Logic</strong><br>
+  You can create complex queries like <code>+(security vulnerability) -plugin</code> which means "must contain either security OR vulnerability, but not plugin". Or <code>+(wordpress mysql) +tutorial</code> requires tutorial and at least one of wordpress or mysql.</p>
+
+  <p><strong>Competitive Analysis</strong><br>
+  <code>+comparison -"our product"</code> finds comparison posts that don't mention your own product, revealing competitor discussions.</p>
+
+  <p><strong>Quality Control</strong><br>
+  <code>+review +(terrible poor bad) -"great product"</code> can help identify negative reviews that need attention.</p>
+
+  <p><strong>Version-Specific Support</strong><br>
+  <code>+"wordpress 6" +problem -solved</code> finds unresolved WordPress 6 issues.</p>
+
+  <p>The key insight is that Boolean mode transforms search from "show me anything related" to "show me exactly what matches these logical rules". For WordPress sites with large content libraries, mastering this syntax dramatically improves content discoverability for both site visitors and content managers.</p>
+</div>
         </div>
         
         <style>
@@ -262,6 +299,42 @@ port*
                 border-radius: 3px;
                 margin-top: 20px;
             }
+            #fts-example-rhs {
+                margin-top: 30px;
+                padding: 24px;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+                font-size: 1.875rem;
+                line-height: 1.65;
+                color: #1f2937;
+            }
+            #fts-example-rhs h2 {
+                font-size: 2.25rem;
+                margin-top: 0;
+                margin-bottom: 12px;
+                color: #0f172a;
+            }
+            #fts-example-rhs h3 {
+                font-size: 1.95rem;
+                margin-top: 20px;
+                margin-bottom: 10px;
+                color: #1d4ed8;
+            }
+            #fts-example-rhs p {
+                margin: 0 0 14px 0;
+            }
+            #fts-example-rhs code {
+                background: #f1f5f9;
+                color: #0f172a;
+                padding: 2px 6px;
+                border-radius: 6px;
+                font-size: 1.65rem;
+                font-family: "Consolas", "Courier New", monospace;
+            }
+            #fts-example-rhs p {
+                          font-size: 1.25rem;}
             @media (max-width: 1280px) {
                 .fts-container {
                     grid-template-columns: 1fr;
