@@ -235,7 +235,7 @@ class BM25_Calculation_Plugin {
         
         ?>
         <div class="wrap">
-            <h1>🔍 BM25 Search Ranking Calculator</h1>
+            <h1>🔍 BM25 Search Ranking Calculator on wp_products table</h1>
             
             <?php if ($message): ?>
             <div class="notice notice-<?php echo $message_type; ?> is-dismissible">

@@ -96,13 +96,13 @@ class FTS_Teaching_Plugin {
             ),
             array(
                 'id' => 9,
-                'title' => 'Supervised Learning Methods',
-                'content' => 'Supervised learning uses labeled training data to make predictions. Classification and regression are the two main supervised learning tasks. Popular algorithms include decision trees, support vector machines, and neural networks.'
+                'title' => ' Unsupervised Learning Techniques ',
+                'content' => ' Unsupervised Learning Techniques learning uses labeled training data to make predictions. Classification and regression are the two main supervised learning tasks. Popular algorithms include decision trees, support vector machines, and neural networks.'
             ),
             array(
                 'id' => 10,
                 'title' => 'Unsupervised Learning Techniques',
-                'content' => 'Unsupervised learning finds patterns in unlabeled data without guidance. Clustering groups similar items while dimensionality reduction simplifies complex datasets. These techniques are valuable for exploratory data analysis.'
+                'content' => 'Unsupervised learning finds patterns in unlabeled data without guidance. Clustering groups similar items while dimensionality reduction simplifies complex datasets. These techniques are valuable for exploratory data analysis. Unsupervised learning finds patterns in unlabeled data without guidance. Clustering groups similar items while dimensionality reduction simplifies complex datasets. These techniques are valuable for exploratory data analysis. Unsupervised learning finds patterns in unlabeled data without guidance. Unsupervised Learning Techniques Clustering groups similar items while dimensionality reduction simplifies complex datasets. These techniques are valuable for exploratory data analysis. Unsupervised learning finds patterns in unlabeled data without guidance. Clustering groups similar items while dimensionality reduction simplifies complex datasets.  Unsupervised Learning Techniques These techniques are valuable for exploratory data analysis. Unsupervised learning finds patterns in unlabeled data without guidance. Clustering groups similar items while dimensionality reduction simplifies complex datasets.  Unsupervised Learning Techniques These techniques are valuable for exploratory data analysis. Unsupervised Learning Techniques  Unsupervised Learning Techniques .'
             )
         );
     }
@@ -346,8 +346,7 @@ class FTS_Teaching_Plugin {
     public function render_admin_page() {
         ?>
         <div class="wrap fts-teaching-wrap">
-            <h1>Full-Text Search Algorithms Teaching Tool</h1>
-            <p style="font-size: 14px; color: #666;">Explore TF, IDF, TF-IDF, and BM25 scoring algorithms with detailed mathematical breakdowns.</p>
+            <h1>Explore TF, IDF, TF-IDF, and BM25 scoring algorithms with detailed mathematical breakdowns.</p>
             
             <div class="fts-container">
                 <div class="fts-search-panel">
