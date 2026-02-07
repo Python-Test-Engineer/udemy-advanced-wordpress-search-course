@@ -36,7 +36,7 @@ class FTS_Manager {
             'manage_options',
             'fts-manager',
             array($this, 'render_admin_page'),
-            'dashicons-search',
+        'dashicons-chart-line',
             3.5
         );
     }

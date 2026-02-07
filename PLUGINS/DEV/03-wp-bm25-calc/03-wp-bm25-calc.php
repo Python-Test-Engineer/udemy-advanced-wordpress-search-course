@@ -144,7 +144,7 @@ class BM25_Calculation_Plugin {
     }
     
     public function add_admin_menu() {
-        add_menu_page('BM25 Calculation', '03 BM25 CALC', 'manage_options', 'bm25-calculation', [$this, 'render_admin_page'], 'dashicons-search', 3.3);
+        add_menu_page('BM25 Calculation', '03 BM25 CALC', 'manage_options', 'bm25-calculation', [$this, 'render_admin_page'],       'dashicons-chart-line', 3.3);
     }
     
     public function enqueue_admin_assets($hook) {

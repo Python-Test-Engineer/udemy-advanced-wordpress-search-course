@@ -33,7 +33,7 @@ class FTS_Teaching_Plugin {
             'manage_options',
             'fts-teaching',
             array($this, 'render_admin_page'),
-            'dashicons-search',
+            'dashicons-chart-line',
             3.4
         );
     }
@@ -97,7 +97,7 @@ class FTS_Teaching_Plugin {
             array(
                 'id' => 9,
                 'title' => ' Unsupervised Learning Techniques ',
-                'content' => ' Unsupervised Learning Techniques learning uses labeled training data to make predictions. Classification and regression are the two main supervised learning tasks. Popular algorithms include decision trees, support vector machines, and neural networks.'
+                'content' => ' Unsupervised Learning Techniques learning uses labeled training data to make predictions.'
             ),
             array(
                 'id' => 10,
@@ -113,6 +113,10 @@ class FTS_Teaching_Plugin {
         $query = sanitize_text_field($_POST['query']);
         $method = sanitize_text_field($_POST['method']);
         
+        // Get BM25 parameters if provided
+        $k1 = isset($_POST['k1']) ? floatval($_POST['k1']) : 1.5;
+        $b = isset($_POST['b']) ? floatval($_POST['b']) : 0.75;
+        
         $results = array();
         
         switch ($method) {
@@ -123,7 +127,7 @@ class FTS_Teaching_Plugin {
                 $results = $this->search_tfidf($query);
                 break;
             case 'bm25':
-                $results = $this->search_bm25($query);
+                $results = $this->search_bm25($query, $k1, $b);
                 break;
         }
         
@@ -353,7 +357,7 @@ class FTS_Teaching_Plugin {
                     <h2>Search Interface</h2>
                     
                     <div class="fts-search-form">
-                        <input type="text" id="fts-query" class="fts-query-input" placeholder="Enter search query..." value="machine learning">
+                        <input type="text" id="fts-query" class="fts-query-input" placeholder="Enter search query..." value="Unsupervised Learning">
                         
                         <select id="fts-method" class="fts-method-select">
                             <option value="tf">Term Frequency (TF)</option>
@@ -362,6 +366,32 @@ class FTS_Teaching_Plugin {
                         </select>
                         
                         <button id="fts-search-btn" class="button button-primary">Search</button>
+                    </div>
+                    
+                    <div id="bm25-params" class="bm25-params" style="display: none; margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 5px;">
+                        <h3 style="margin-top: 0; font-size: 14px;">BM25 Parameters</h3>
+                        
+                        <div class="param-control">
+                            <label for="k1-slider">
+                                <strong>k1 (Term Frequency Saturation):</strong> 
+                                <span id="k1-value" style="color: #0073aa;">1.5</span>
+                            </label>
+                            <input type="range" id="k1-slider" min="0.1" max="100" step="0.5" value="1.5" style="width: 100%;">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Controls how quickly term frequency saturates. Higher values = less saturation (more weight on repetition).
+                            </small>
+                        </div>
+                        
+                        <div class="param-control" style="margin-top: 15px;">
+                            <label for="b-slider">
+                                <strong>b (Length Normalization):</strong> 
+                                <span id="b-value" style="color: #0073aa;">0.75</span>
+                            </label>
+                            <input type="range" id="b-slider" min="0" max="1" step="0.05" value="0.75" style="width: 100%;">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Controls document length penalty. 0 = no penalty, 1 = full penalty for longer documents.
+                            </small>
+                        </div>
                     </div>
                     
                     <div class="fts-method-info">
@@ -663,6 +693,31 @@ class FTS_Teaching_Plugin {
         
         <script>
         jQuery(document).ready(function($) {
+            // Show/hide BM25 parameters based on selected method
+            function toggleBM25Params() {
+                if ($('#fts-method').val() === 'bm25') {
+                    $('#bm25-params').slideDown();
+                } else {
+                    $('#bm25-params').slideUp();
+                }
+            }
+            
+            // Initialize on page load
+            toggleBM25Params();
+            
+            // Toggle when method changes
+            $('#fts-method').on('change', toggleBM25Params);
+            
+            // Update k1 value display
+            $('#k1-slider').on('input', function() {
+                $('#k1-value').text($(this).val());
+            });
+            
+            // Update b value display
+            $('#b-slider').on('input', function() {
+                $('#b-value').text($(this).val());
+            });
+            
             $('#fts-search-btn').on('click', function() {
                 var query = $('#fts-query').val();
                 var method = $('#fts-method').val();
@@ -674,15 +729,23 @@ class FTS_Teaching_Plugin {
                 
                 $('#fts-results').html('<div class="fts-loading">Searching...</div>');
                 
+                var ajaxData = {
+                    action: 'fts_search',
+                    nonce: ftsAjax.nonce,
+                    query: query,
+                    method: method
+                };
+                
+                // Add BM25 parameters if BM25 is selected
+                if (method === 'bm25') {
+                    ajaxData.k1 = parseFloat($('#k1-slider').val());
+                    ajaxData.b = parseFloat($('#b-slider').val());
+                }
+                
                 $.ajax({
                     url: ftsAjax.ajax_url,
                     type: 'POST',
-                    data: {
-                        action: 'fts_search',
-                        nonce: ftsAjax.nonce,
-                        query: query,
-                        method: method
-                    },
+                    data: ajaxData,
                     success: function(response) {
                         if (response.success) {
                             displayResults(response.data, method);

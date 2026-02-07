@@ -34,7 +34,7 @@ class BM25_Search_Plugin {
             'manage_options',                  // Capability
             'bm25-search-analyzer',            // Menu slug
             array($this, 'display_admin_page'), // Callback
-            'dashicons-search',                // Icon
+           'dashicons-chart-line',        // Icon
             3.2                            // Position
         );
     }
