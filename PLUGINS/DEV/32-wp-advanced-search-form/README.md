@@ -125,14 +125,41 @@ fts-query-builder/
 
 ## WordPress API Usage
 
-Once you have the encoded query, use it with the WordPress REST API:
+The plugin automatically generates URLs using your site's custom hybrid search endpoint:
 
 ```php
-$encoded_query = 'wordpress%20plugin%20%2Btutorial';
-$url = home_url('/wp-json/wp/v2/posts?search=' . $encoded_query);
-$response = wp_remote_get($url);
-$posts = json_decode(wp_remote_retrieve_body($response));
+// The plugin uses get_site_url() to get the current domain
+$site_url = get_site_url();
+$encoded_query = 'pillow%20%2Bmemory%20%2Bfoam';
+$url = $site_url . '/wp-json/search/v1/hybrid-search?query=' . $encoded_query;
+
+// Example result:
+// https://yoursite.com/wp-json/search/v1/hybrid-search?query=pillow%20%2Bmemory%20%2Bfoam
 ```
+
+### Making API Calls
+
+```php
+// Once you have the encoded query, use it with the hybrid search API
+$encoded_query = 'pillow%20%2Bmemory%20%2Bfoam%20-premium';
+$url = get_site_url() . '/wp-json/search/v1/hybrid-search?query=' . $encoded_query;
+
+$response = wp_remote_get($url);
+if (!is_wp_error($response)) {
+    $body = wp_remote_retrieve_body($response);
+    $results = json_decode($body, true);
+    // Process your results
+}
+```
+
+### Endpoint Format
+
+The plugin uses the custom hybrid search endpoint:
+```
+/wp-json/search/v1/hybrid-search?query=[encoded_query]
+```
+
+This endpoint is designed to work with your Full Text Search implementation and supports all the boolean operators provided by the plugin.
 
 ## Support
 
