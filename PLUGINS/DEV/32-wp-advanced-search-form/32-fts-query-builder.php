@@ -258,6 +258,52 @@ class FTS_Query_Builder {
                     </p>
                 </form>
 
+                <div class="fts-admin-info-box">
+                    <h3>Boolean Operators Guide:</h3>
+                    <p>
+                        <strong>+ (Must Contain):</strong> <code>+tutorial</code> - Result MUST include "tutorial"<br>
+                        <strong>- (Must NOT Contain):</strong> <code>-premium</code> - Result must NOT include "premium"<br>
+                        <strong>* (Wildcard):</strong> <code>develop*</code> - Matches develop, developer, development, etc.<br>
+                        <strong>"..." (Exact Phrase):</strong> <code>"wordpress plugin"</code> - Exact phrase match<br>
+                        <strong>&lt; (Less Than):</strong> <code>price&lt;100</code> - Numeric less than comparison<br>
+                        <strong>&gt; (Greater Than):</strong> <code>price&gt;100</code> - Numeric greater than comparison<br>
+                        <strong>| (OR):</strong> <code>(tutorial|guide)</code> - Match either tutorial OR guide<br>
+                        <strong>() (Grouping):</strong> <code>(+wordpress +(plugin|theme))</code> - Group complex queries<br>
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <strong>Example Complex Query:</strong><br>
+                        <code>+wordpress +(plugin|theme) -premium "best practices" develop* price&lt;50</code>
+                    </p>
+                </div>
+
+                <div class="fts-admin-info-box">
+                    <h3>How URL Encoding Works:</h3>
+                    <p>
+                        <strong>The Problem:</strong> In URLs, <code>+</code> means "space", but we need it as a search operator.<br>
+                        <strong>The Solution:</strong> We use <code>%2B</code> for the literal + character.<br><br>
+                        <strong>Example:</strong><br>
+                        • Search for: <code>+tutorial -premium develop*</code><br>
+                        • URL becomes: <code>/wp-json/search/v1/hybrid-search?query=%2Btutorial%20-premium%20develop*</code><br>
+                        • Backend receives: <code>+tutorial -premium develop*</code> ✓
+                    </p>
+                </div>
+
+                <div class="fts-admin-info-box" style="background: #f3e5f5; border-left-color: #9c27b0;">
+                    <h3>API Endpoint Information:</h3>
+                    <p>
+                        <strong>Custom Hybrid Search Endpoint:</strong><br>
+                        <code><?php echo get_site_url(); ?>/wp-json/search/v1/hybrid-search?query=</code><br><br>
+                        This plugin automatically uses your site's domain with the hybrid search endpoint.<br>
+                        The generated URL will work with your current WordPress installation.
+                    </p>
+                </div>
+
+                <div class="fts-admin-info-box" style="background: #fcf8e3; border-left-color: #f0ad4e;">
+                    <h3>Using the Shortcode:</h3>
+                    <p>Add <code>[fts_search_form]</code> to any page or post to display this form on the frontend.</p>
+                </div>
+            </div>
+
                 <div id="fts-admin-result" class="fts-admin-result">
                     <h3>Encoded Query String:</h3>
                     <div class="fts-admin-query-output" id="fts-admin-encoded-query"></div>
@@ -366,52 +412,6 @@ class FTS_Query_Builder {
                         </p>
                     </div>
                 </div>
-
-                <div class="fts-admin-info-box">
-                    <h3>Boolean Operators Guide:</h3>
-                    <p>
-                        <strong>+ (Must Contain):</strong> <code>+tutorial</code> - Result MUST include "tutorial"<br>
-                        <strong>- (Must NOT Contain):</strong> <code>-premium</code> - Result must NOT include "premium"<br>
-                        <strong>* (Wildcard):</strong> <code>develop*</code> - Matches develop, developer, development, etc.<br>
-                        <strong>"..." (Exact Phrase):</strong> <code>"wordpress plugin"</code> - Exact phrase match<br>
-                        <strong>&lt; (Less Than):</strong> <code>price&lt;100</code> - Numeric less than comparison<br>
-                        <strong>&gt; (Greater Than):</strong> <code>price&gt;100</code> - Numeric greater than comparison<br>
-                        <strong>| (OR):</strong> <code>(tutorial|guide)</code> - Match either tutorial OR guide<br>
-                        <strong>() (Grouping):</strong> <code>(+wordpress +(plugin|theme))</code> - Group complex queries<br>
-                    </p>
-                    <p style="margin-top: 10px;">
-                        <strong>Example Complex Query:</strong><br>
-                        <code>+wordpress +(plugin|theme) -premium "best practices" develop* price&lt;50</code>
-                    </p>
-                </div>
-
-                <div class="fts-admin-info-box">
-                    <h3>How URL Encoding Works:</h3>
-                    <p>
-                        <strong>The Problem:</strong> In URLs, <code>+</code> means "space", but we need it as a search operator.<br>
-                        <strong>The Solution:</strong> We use <code>%2B</code> for the literal + character.<br><br>
-                        <strong>Example:</strong><br>
-                        • Search for: <code>+tutorial -premium develop*</code><br>
-                        • URL becomes: <code>/wp-json/search/v1/hybrid-search?query=%2Btutorial%20-premium%20develop*</code><br>
-                        • Backend receives: <code>+tutorial -premium develop*</code> ✓
-                    </p>
-                </div>
-
-                <div class="fts-admin-info-box" style="background: #f3e5f5; border-left-color: #9c27b0;">
-                    <h3>API Endpoint Information:</h3>
-                    <p>
-                        <strong>Custom Hybrid Search Endpoint:</strong><br>
-                        <code><?php echo get_site_url(); ?>/wp-json/search/v1/hybrid-search?query=</code><br><br>
-                        This plugin automatically uses your site's domain with the hybrid search endpoint.<br>
-                        The generated URL will work with your current WordPress installation.
-                    </p>
-                </div>
-
-                <div class="fts-admin-info-box" style="background: #fcf8e3; border-left-color: #f0ad4e;">
-                    <h3>Using the Shortcode:</h3>
-                    <p>Add <code>[fts_search_form]</code> to any page or post to display this form on the frontend.</p>
-                </div>
-            </div>
 
             <script>
             jQuery(document).ready(function($) {
