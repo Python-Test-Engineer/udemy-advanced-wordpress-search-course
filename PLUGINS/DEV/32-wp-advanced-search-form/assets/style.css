@@ -1,0 +1,160 @@
+/* FTS Query Builder Styles */
+
+.fts-query-builder {
+    max-width: 700px;
+    margin: 30px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.fts-form-group {
+    margin-bottom: 20px;
+}
+
+.fts-form-group label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.fts-form-group input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.fts-form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.fts-help-text {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.fts-operator-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 13px;
+    margin-left: 5px;
+    font-weight: normal;
+}
+
+.fts-operator-badge.fts-plus {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.fts-operator-badge.fts-minus {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.fts-operator-badge.fts-wildcard {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.fts-submit-btn {
+    background: #4CAF50;
+    color: white;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.3s;
+}
+
+.fts-submit-btn:hover {
+    background: #45a049;
+}
+
+.fts-result {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.fts-result h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+}
+
+.fts-query-output {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    border: 2px solid #4CAF50;
+    font-family: monospace;
+    word-break: break-all;
+    margin: 10px 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.fts-copy-btn {
+    background: #2196F3;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.fts-copy-btn:hover {
+    background: #1976D2;
+}
+
+.fts-example-url {
+    background: #fff3cd;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+    border-left: 4px solid #ffc107;
+}
+
+.fts-example-url strong {
+    color: #856404;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.fts-example-url code {
+    background: white;
+    padding: 8px;
+    border-radius: 3px;
+    display: block;
+    word-break: break-all;
+    font-size: 12px;
+    color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fts-query-builder {
+        padding: 20px;
+        margin: 15px;
+    }
+}
