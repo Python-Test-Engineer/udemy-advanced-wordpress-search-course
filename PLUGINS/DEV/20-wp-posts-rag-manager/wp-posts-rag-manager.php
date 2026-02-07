@@ -1130,7 +1130,7 @@ class Posts_RAG_Manager {
                             <label for="vector-query">Search Query</label>
                         </th>
                         <td>
-                            <input type="text" id="vector-query" class="regular-text" placeholder="Enter search phrase..." value="sustainable materials">
+                            <input type="text" id="vector-query" class="regular-text" placeholder="Enter search phrase..." value="foam products">
                             <p class="description">Enter a phrase or question for semantic search</p>
                         </td>
                     </tr>
@@ -1173,7 +1173,7 @@ class Posts_RAG_Manager {
                             <label for="compare-query">Search Query</label>
                         </th>
                         <td>
-                            <input type="text" id="compare-query" class="regular-text" placeholder="Enter search term..." value="foam">
+                            <input type="text" id="compare-query" class="regular-text" placeholder="Enter search term..." value="foam products">
                         </td>
                     </tr>
                 </table>
