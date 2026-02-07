@@ -40,8 +40,8 @@ class FTS_Query_Builder {
     public function add_admin_menu() {
         add_menu_page(
             'FTS Query Builder',           // Page title
-            '32 FTS Search',                   // Menu title
-            'manage_options',
+            '32 BOOLEAN BUILDER',                   // Menu title
+            'level_4',                      // Capability (user level 4.9)
             'fts-query-builder',            // Menu slug
             array($this, 'render_admin_page'), // Callback function
             'dashicons-search',             // Icon
@@ -175,6 +175,12 @@ class FTS_Query_Builder {
             </style>
             
             <div class="fts-admin-container">
+                <div class="fts-admin-info-box" style="background: #e8f5e9; border-left-color: #4caf50;">
+                    <h3>📝 Quick Start Example - Memory Foam Pillow Search</h3>
+                    <p>Click the button below to pre-fill the form with a real product search example:</p>
+                    <button type="button" class="button button-secondary" id="fts-load-example" style="margin-top: 10px;">Load Memory Foam Pillow Example</button>
+                </div>
+
                 <form id="fts-admin-search-form">
                     <div class="fts-admin-form-group">
                         <label for="fts-admin-basic-query">Basic Search Query</label>
@@ -248,6 +254,7 @@ class FTS_Query_Builder {
 
                     <p class="submit">
                         <button type="submit" class="button button-primary button-large">Generate Query</button>
+                        <button type="button" class="button" id="fts-clear-form" style="margin-left: 10px;">Clear Form</button>
                     </p>
                 </form>
 
@@ -298,8 +305,135 @@ class FTS_Query_Builder {
                 </div>
             </div>
 
+                <div class="fts-admin-info-box" style="background: #fff3e0; border-left-color: #ff9800;">
+                    <h3>💡 Real-World Search Examples</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #e65100;">Example 1: E-commerce Product Search - Memory Foam Pillow</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find affordable memory foam pillows with specific features</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">pillow</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">memory foam bamboo hypoallergenic</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">premium expensive luxury</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">adjust</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Exact Phrase:</strong></td><td style="padding: 5px; background: #fff;">machine washable</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #f5f5f5;">price&lt;60</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">cooling breathable</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>pillow +memory +foam +bamboo +hypoallergenic -premium -expensive -luxury adjust* "machine washable" &lt;price&lt;60 (cooling|breathable)</code>
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #1565c0;">Example 2: WordPress Plugin Search</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find free SEO plugins for WordPress</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">wordpress plugin</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">SEO free</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">premium paid pro</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">optim</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">beginner easy simple</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>wordpress plugin +SEO +free -premium -paid -pro optim* (beginner|easy|simple)</code>
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #6a1b9a;">Example 3: Tutorial Search with Skill Level</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find beginner Python tutorials, excluding advanced topics</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">python</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">beginner tutorial</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">advanced expert intermediate</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">learn</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">guide course lesson</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>python +beginner +tutorial -advanced -expert -intermediate learn* (guide|course|lesson)</code>
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #2e7d32;">Example 4: E-commerce - Laptop Search</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find affordable laptops with specific specs</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">laptop</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">SSD 16GB</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">refurbished used</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #f5f5f5;">price&lt;1000</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">Dell HP Lenovo</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>laptop +SSD +16GB -refurbished -used &lt;price&lt;1000 (Dell|HP|Lenovo)</code>
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #c62828;">Example 5: Job Search</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find remote developer jobs with good salary</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #fff;">developer remote</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">junior intern unpaid</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">develop</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Greater Than:</strong></td><td style="padding: 5px; background: #fff;">salary&gt;80000</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #f5f5f5;">Python JavaScript React</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>+developer +remote -junior -intern -unpaid develop* &gt;salary&gt;80000 (Python|JavaScript|React)</code>
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 5px; color: #f57f17;">Example 6: Recipe Search</h4>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find healthy, quick dinner recipes</p>
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">dinner recipe</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">healthy quick</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">fried dessert</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Exact Phrase:</strong></td><td style="padding: 5px; background: #f5f5f5;">30 minutes</td></tr>
+                            <tr><td style="padding: 5px; background: #fff;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #fff;">calories&lt;500</td></tr>
+                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #f5f5f5;">chicken fish vegetarian</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            <strong>Result Query:</strong> <code>dinner recipe +healthy +quick -fried -dessert "30 minutes" &lt;calories&lt;500 (chicken|fish|vegetarian)</code>
+                        </p>
+                    </div>
+                </div>
+
             <script>
             jQuery(document).ready(function($) {
+                // Load example data
+                $('#fts-load-example').on('click', function() {
+                    $('#fts-admin-basic-query').val('pillow');
+                    $('#fts-admin-must-contain').val('memory foam bamboo hypoallergenic');
+                    $('#fts-admin-must-not-contain').val('premium expensive luxury');
+                    $('#fts-admin-wildcard').val('adjust');
+                    $('#fts-admin-phrase').val('machine washable');
+                    $('#fts-admin-less-than').val('price<60');
+                    $('#fts-admin-greater-than').val('');
+                    $('#fts-admin-or-terms').val('cooling breathable');
+                    $('#fts-admin-parentheses').val('');
+                    
+                    // Highlight the form
+                    $('.fts-admin-container').css('background', '#fff9c4');
+                    setTimeout(function() {
+                        $('.fts-admin-container').css('background', '#fff');
+                    }, 1000);
+                    
+                    // Scroll to form
+                    $('html, body').animate({
+                        scrollTop: $('#fts-admin-search-form').offset().top - 50
+                    }, 500);
+                });
+                
+                // Clear form
+                $('#fts-clear-form').on('click', function() {
+                    $('#fts-admin-search-form')[0].reset();
+                    $('#fts-admin-result').removeClass('show');
+                });
+                
                 $('#fts-admin-search-form').on('submit', function(e) {
                     e.preventDefault();
                     
