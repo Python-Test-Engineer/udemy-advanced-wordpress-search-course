@@ -4,7 +4,7 @@
  * Plugin URI: https://example.com
  * Description: Advanced search form that generates encoded FTS query strings with +, -, and * operators
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Craig West
  * Author URI: https://example.com
  * License: GPL2
  * Text Domain: fts-query-builder
@@ -14,6 +14,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 class FTS_Query_Builder {
     
@@ -40,7 +41,7 @@ class FTS_Query_Builder {
         add_menu_page(
             'FTS Query Builder',           // Page title
             '32 FTS Search',                   // Menu title
-            'manage_options',                // Capability (user level 4.9)
+            'manage_options',
             'fts-query-builder',            // Menu slug
             array($this, 'render_admin_page'), // Callback function
             'dashicons-search',             // Icon
@@ -205,6 +206,46 @@ class FTS_Query_Builder {
                         <span class="fts-admin-help-text">Match variations (becomes develop* custom*)</span>
                     </div>
 
+                    <div class="fts-admin-form-group">
+                        <label for="fts-admin-phrase">
+                            Exact Phrase <span class="fts-admin-operator-badge" style="background: #e8eaf6; color: #283593;">"..."</span>
+                        </label>
+                        <input type="text" id="fts-admin-phrase" name="phrase" placeholder="e.g., wordpress tutorial">
+                        <span class="fts-admin-help-text">Match exact phrase (becomes "wordpress tutorial")</span>
+                    </div>
+
+                    <div class="fts-admin-form-group">
+                        <label for="fts-admin-less-than">
+                            Less Than <span class="fts-admin-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
+                        </label>
+                        <input type="text" id="fts-admin-less-than" name="less_than" placeholder="e.g., field:100">
+                        <span class="fts-admin-help-text">Less than operator (e.g., price&lt;100)</span>
+                    </div>
+
+                    <div class="fts-admin-form-group">
+                        <label for="fts-admin-greater-than">
+                            Greater Than <span class="fts-admin-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
+                        </label>
+                        <input type="text" id="fts-admin-greater-than" name="greater_than" placeholder="e.g., field:100">
+                        <span class="fts-admin-help-text">Greater than operator (e.g., price&gt;100)</span>
+                    </div>
+
+                    <div class="fts-admin-form-group">
+                        <label for="fts-admin-or-terms">
+                            OR Terms <span class="fts-admin-operator-badge" style="background: #f3e5f5; color: #6a1b9a;">|</span>
+                        </label>
+                        <input type="text" id="fts-admin-or-terms" name="or_terms" placeholder="e.g., tutorial guide">
+                        <span class="fts-admin-help-text">Match any of these terms (becomes tutorial|guide)</span>
+                    </div>
+
+                    <div class="fts-admin-form-group">
+                        <label for="fts-admin-parentheses">
+                            Grouping (Parentheses) <span class="fts-admin-operator-badge" style="background: #e0f2f1; color: #00695c;">()</span>
+                        </label>
+                        <input type="text" id="fts-admin-parentheses" name="parentheses" placeholder="e.g., wordpress AND (plugin OR theme)">
+                        <span class="fts-admin-help-text">Group terms with parentheses for complex queries</span>
+                    </div>
+
                     <p class="submit">
                         <button type="submit" class="button button-primary button-large">Generate Query</button>
                     </p>
@@ -219,6 +260,24 @@ class FTS_Query_Builder {
                         <strong>Use this in your URL:</strong><br>
                         <code id="fts-admin-example-url"></code>
                     </div>
+                </div>
+
+                <div class="fts-admin-info-box">
+                    <h3>Boolean Operators Guide:</h3>
+                    <p>
+                        <strong>+ (Must Contain):</strong> <code>+tutorial</code> - Result MUST include "tutorial"<br>
+                        <strong>- (Must NOT Contain):</strong> <code>-premium</code> - Result must NOT include "premium"<br>
+                        <strong>* (Wildcard):</strong> <code>develop*</code> - Matches develop, developer, development, etc.<br>
+                        <strong>"..." (Exact Phrase):</strong> <code>"wordpress plugin"</code> - Exact phrase match<br>
+                        <strong>&lt; (Less Than):</strong> <code>price&lt;100</code> - Numeric less than comparison<br>
+                        <strong>&gt; (Greater Than):</strong> <code>price&gt;100</code> - Numeric greater than comparison<br>
+                        <strong>| (OR):</strong> <code>(tutorial|guide)</code> - Match either tutorial OR guide<br>
+                        <strong>() (Grouping):</strong> <code>(+wordpress +(plugin|theme))</code> - Group complex queries<br>
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <strong>Example Complex Query:</strong><br>
+                        <code>+wordpress +(plugin|theme) -premium "best practices" develop* price&lt;50</code>
+                    </p>
                 </div>
 
                 <div class="fts-admin-info-box">
@@ -248,8 +307,13 @@ class FTS_Query_Builder {
                     const mustContain = $('#fts-admin-must-contain').val().trim();
                     const mustNotContain = $('#fts-admin-must-not-contain').val().trim();
                     const wildcard = $('#fts-admin-wildcard').val().trim();
+                    const phrase = $('#fts-admin-phrase').val().trim();
+                    const lessThan = $('#fts-admin-less-than').val().trim();
+                    const greaterThan = $('#fts-admin-greater-than').val().trim();
+                    const orTerms = $('#fts-admin-or-terms').val().trim();
+                    const parentheses = $('#fts-admin-parentheses').val().trim();
                     
-                    if (!basicQuery && !mustContain && !mustNotContain && !wildcard) {
+                    if (!basicQuery && !mustContain && !mustNotContain && !wildcard && !phrase && !lessThan && !greaterThan && !orTerms && !parentheses) {
                         alert('Please enter at least one search term');
                         return;
                     }
@@ -263,7 +327,12 @@ class FTS_Query_Builder {
                             basic_query: basicQuery,
                             must_contain: mustContain,
                             must_not_contain: mustNotContain,
-                            wildcard: wildcard
+                            wildcard: wildcard,
+                            phrase: phrase,
+                            less_than: lessThan,
+                            greater_than: greaterThan,
+                            or_terms: orTerms,
+                            parentheses: parentheses
                         },
                         success: function(response) {
                             if (response.success) {
@@ -341,7 +410,7 @@ class FTS_Query_Builder {
     /**
      * Build the FTS query string
      */
-    public function build_query($basic, $must_contain, $must_not_contain, $wildcard) {
+    public function build_query($basic, $must_contain, $must_not_contain, $wildcard, $phrase = '', $less_than = '', $greater_than = '', $or_terms = '', $parentheses = '') {
         $parts = array();
         
         // Add basic query
@@ -373,6 +442,36 @@ class FTS_Query_Builder {
             }
         }
         
+        // Add exact phrase with quotes
+        if (!empty($phrase)) {
+            $parts[] = '"' . trim($phrase) . '"';
+        }
+        
+        // Add less than operator
+        if (!empty($less_than)) {
+            $parts[] = '<' . trim($less_than);
+        }
+        
+        // Add greater than operator
+        if (!empty($greater_than)) {
+            $parts[] = '>' . trim($greater_than);
+        }
+        
+        // Add OR terms with | separator
+        if (!empty($or_terms)) {
+            $terms = preg_split('/\s+/', trim($or_terms), -1, PREG_SPLIT_NO_EMPTY);
+            if (count($terms) > 1) {
+                $parts[] = '(' . implode('|', $terms) . ')';
+            } else {
+                $parts[] = $terms[0];
+            }
+        }
+        
+        // Add parentheses grouping (user provides the full expression)
+        if (!empty($parentheses)) {
+            $parts[] = trim($parentheses);
+        }
+        
         return implode(' ', $parts);
     }
     
@@ -386,9 +485,14 @@ class FTS_Query_Builder {
         $must_contain = isset($_POST['must_contain']) ? sanitize_text_field($_POST['must_contain']) : '';
         $must_not_contain = isset($_POST['must_not_contain']) ? sanitize_text_field($_POST['must_not_contain']) : '';
         $wildcard = isset($_POST['wildcard']) ? sanitize_text_field($_POST['wildcard']) : '';
+        $phrase = isset($_POST['phrase']) ? sanitize_text_field($_POST['phrase']) : '';
+        $less_than = isset($_POST['less_than']) ? sanitize_text_field($_POST['less_than']) : '';
+        $greater_than = isset($_POST['greater_than']) ? sanitize_text_field($_POST['greater_than']) : '';
+        $or_terms = isset($_POST['or_terms']) ? sanitize_text_field($_POST['or_terms']) : '';
+        $parentheses = isset($_POST['parentheses']) ? sanitize_text_field($_POST['parentheses']) : '';
         
         // Build query
-        $query = $this->build_query($basic, $must_contain, $must_not_contain, $wildcard);
+        $query = $this->build_query($basic, $must_contain, $must_not_contain, $wildcard, $phrase, $less_than, $greater_than, $or_terms, $parentheses);
         
         // Encode query using rawurlencode for proper + encoding
         $encoded = rawurlencode($query);
@@ -440,6 +544,46 @@ class FTS_Query_Builder {
                     </label>
                     <input type="text" id="fts-wildcard" name="wildcard" placeholder="e.g., develop custom">
                     <span class="fts-help-text">Match variations (becomes develop* custom*)</span>
+                </div>
+
+                <div class="fts-form-group">
+                    <label for="fts-phrase">
+                        Exact Phrase <span class="fts-operator-badge" style="background: #e8eaf6; color: #283593;">"..."</span>
+                    </label>
+                    <input type="text" id="fts-phrase" name="phrase" placeholder="e.g., wordpress tutorial">
+                    <span class="fts-help-text">Match exact phrase (becomes "wordpress tutorial")</span>
+                </div>
+
+                <div class="fts-form-group">
+                    <label for="fts-less-than">
+                        Less Than <span class="fts-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
+                    </label>
+                    <input type="text" id="fts-less-than" name="less_than" placeholder="e.g., field:100">
+                    <span class="fts-help-text">Less than operator (e.g., price&lt;100)</span>
+                </div>
+
+                <div class="fts-form-group">
+                    <label for="fts-greater-than">
+                        Greater Than <span class="fts-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
+                    </label>
+                    <input type="text" id="fts-greater-than" name="greater_than" placeholder="e.g., field:100">
+                    <span class="fts-help-text">Greater than operator (e.g., price&gt;100)</span>
+                </div>
+
+                <div class="fts-form-group">
+                    <label for="fts-or-terms">
+                        OR Terms <span class="fts-operator-badge" style="background: #f3e5f5; color: #6a1b9a;">|</span>
+                    </label>
+                    <input type="text" id="fts-or-terms" name="or_terms" placeholder="e.g., tutorial guide">
+                    <span class="fts-help-text">Match any of these terms (becomes tutorial|guide)</span>
+                </div>
+
+                <div class="fts-form-group">
+                    <label for="fts-parentheses">
+                        Grouping (Parentheses) <span class="fts-operator-badge" style="background: #e0f2f1; color: #00695c;">()</span>
+                    </label>
+                    <input type="text" id="fts-parentheses" name="parentheses" placeholder="e.g., wordpress AND (plugin OR theme)">
+                    <span class="fts-help-text">Group terms with parentheses for complex queries</span>
                 </div>
 
                 <button type="submit" class="fts-submit-btn">Generate Query</button>

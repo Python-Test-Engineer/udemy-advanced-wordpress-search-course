@@ -69,6 +69,31 @@
     color: #1565c0;
 }
 
+.fts-operator-badge.fts-phrase {
+    background: #e8eaf6;
+    color: #283593;
+}
+
+.fts-operator-badge.fts-less {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.fts-operator-badge.fts-greater {
+    background: #ffe0b2;
+    color: #e65100;
+}
+
+.fts-operator-badge.fts-or {
+    background: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.fts-operator-badge.fts-group {
+    background: #e0f2f1;
+    color: #00695c;
+}
+
 .fts-submit-btn {
     background: #4CAF50;
     color: white;

@@ -6,9 +6,14 @@ A WordPress plugin that provides an advanced search form to generate encoded FTS
 
 - **Admin Menu Interface**: Accessible from WordPress admin dashboard
 - **User Level 4.9 Access**: Menu item available to users with level_4 capability
-- **Must Contain** (+): Terms that must appear in search results
-- **Must NOT Contain** (-): Terms to exclude from results
-- **Wildcard** (*): Match word variations
+- **Must Contain (+)**: Terms that must appear in search results
+- **Must NOT Contain (-)**: Terms to exclude from results
+- **Wildcard (*)**: Match word variations
+- **Exact Phrase ("")**: Match exact phrases
+- **Less Than (<)**: Numeric comparison operator
+- **Greater Than (>)**: Numeric comparison operator
+- **OR Operator (|)**: Match any of the specified terms
+- **Grouping ()**: Complex query grouping with parentheses
 - **Proper URL Encoding**: Uses `rawurlencode()` to preserve operators
 - **Copy to Clipboard**: Easy copying of generated query strings
 - **AJAX-powered**: Smooth, no-reload experience
@@ -40,15 +45,52 @@ After activation, you'll see "FTS Search" in your WordPress admin menu (with a s
    - Must Contain: `tutorial`
    - Must Not Contain: `premium`
    - Wildcard: `develop`
+   - Exact Phrase: `best practices`
+   - OR Terms: `guide help`
 
 2. **Plugin generates:**
-   - Query: `wordpress plugin +tutorial -premium develop*`
-   - Encoded: `wordpress%20plugin%20%2Btutorial%20-premium%20develop*`
+   - Query: `wordpress plugin +tutorial -premium develop* "best practices" (guide|help)`
+   - Encoded: `wordpress%20plugin%20%2Btutorial%20-premium%20develop*%20%22best%20practices%22%20%28guide%7Chelp%29`
 
 3. **User gets the encoded query string to append to their URL:**
    ```
-   /wp-json/wp/v2/posts?search=wordpress%20plugin%20%2Btutorial%20-premium%20develop*
+   /wp-json/wp/v2/posts?search=wordpress%20plugin%20%2Btutorial%20-premium%20develop*%20%22best%20practices%22%20%28guide%7Chelp%29
    ```
+
+## Operator Reference
+
+| Operator | Symbol | Example | Description |
+|----------|--------|---------|-------------|
+| Must Contain | `+` | `+tutorial` | Result MUST include this term |
+| Must NOT Contain | `-` | `-premium` | Result must NOT include this term |
+| Wildcard | `*` | `develop*` | Matches develop, developer, development, etc. |
+| Exact Phrase | `"..."` | `"wordpress plugin"` | Match exact phrase |
+| Less Than | `<` | `price<100` | Numeric less than comparison |
+| Greater Than | `>` | `price>100` | Numeric greater than comparison |
+| OR | `|` | `(tutorial|guide)` | Match either term |
+| Grouping | `()` | `(+term1 +term2)` | Group complex queries |
+
+### Complex Query Examples
+
+**Example 1: Advanced Product Search**
+```
++wordpress +(plugin|theme) -premium "best practices" develop* price<50
+```
+- MUST contain "wordpress"
+- MUST contain either "plugin" OR "theme"
+- Must NOT contain "premium"
+- Must contain exact phrase "best practices"
+- Match "develop" variations
+- Price less than 50
+
+**Example 2: Tutorial Search**
+```
++(tutorial|guide) +beginner -(paid|premium) free*
+```
+- MUST contain either "tutorial" OR "guide"
+- MUST contain "beginner"
+- Must NOT contain "paid" or "premium"
+- Match "free" variations
 
 ## Key Technical Details
 

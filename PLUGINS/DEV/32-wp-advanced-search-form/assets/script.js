@@ -7,9 +7,14 @@ jQuery(document).ready(function($) {
         const mustContain = $('#fts-must-contain').val().trim();
         const mustNotContain = $('#fts-must-not-contain').val().trim();
         const wildcard = $('#fts-wildcard').val().trim();
+        const phrase = $('#fts-phrase').val().trim();
+        const lessThan = $('#fts-less-than').val().trim();
+        const greaterThan = $('#fts-greater-than').val().trim();
+        const orTerms = $('#fts-or-terms').val().trim();
+        const parentheses = $('#fts-parentheses').val().trim();
         
         // Check if at least one field has a value
-        if (!basicQuery && !mustContain && !mustNotContain && !wildcard) {
+        if (!basicQuery && !mustContain && !mustNotContain && !wildcard && !phrase && !lessThan && !greaterThan && !orTerms && !parentheses) {
             alert('Please enter at least one search term');
             return;
         }
@@ -24,7 +29,12 @@ jQuery(document).ready(function($) {
                 basic_query: basicQuery,
                 must_contain: mustContain,
                 must_not_contain: mustNotContain,
-                wildcard: wildcard
+                wildcard: wildcard,
+                phrase: phrase,
+                less_than: lessThan,
+                greater_than: greaterThan,
+                or_terms: orTerms,
+                parentheses: parentheses
             },
             success: function(response) {
                 if (response.success) {
