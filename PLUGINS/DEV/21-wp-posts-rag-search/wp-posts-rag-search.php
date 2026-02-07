@@ -254,7 +254,7 @@ class RAG_Search_Assistant {
                         </div>
                         <div class="rag-input-group limit">
                             <label for="rag-limit">Results per API:</label>
-                            <input type="number" id="rag-limit" class="rag-limit-input" value="2" min="1" max="20">
+                            <input type="number" id="rag-limit" class="rag-limit-input" value="3" min="1" max="5">
                         </div>
                         <button id="rag-search-btn" class="button button-primary">Search</button>
                     </div>
