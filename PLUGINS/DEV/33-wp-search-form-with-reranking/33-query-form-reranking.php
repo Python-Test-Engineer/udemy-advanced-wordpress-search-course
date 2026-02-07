@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name: ✅ 32 FTS Query Builder
+ * Plugin Name: ✅ 33 WP Search Form With Reranking
  * Plugin URI: https://example.com
- * Description: Advanced search form that generates encoded FTS query strings with +, -, and * operators
+ * Description: Advanced search form that generates encoded FTS query strings and shows reranked results.
  * Version: 1.0.0
  * Author: Craig West
  * Author URI: https://example.com
  * License: GPL2
- * Text Domain: fts-query-builder
+ * Text Domain: fts-query-builder-reranking
  */
 
 // Exit if accessed directly
@@ -16,11 +16,11 @@ if (!defined('ABSPATH')) {
 }
 
 
-class FTS_Query_Builder {
+class FTS_Query_Builder_Reranking {
     
     public function __construct() {
         // Register shortcode
-        add_shortcode('fts_search_form', array($this, 'render_search_form'));
+        add_shortcode('fts_search_form_reranking', array($this, 'render_search_form'));
         
         // Enqueue styles and scripts
         add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
@@ -40,12 +40,12 @@ class FTS_Query_Builder {
     public function add_admin_menu() {
         add_menu_page(
             'FTS Query Builder',           // Page title
-            '32 BOOLEAN BUILDER',                   // Menu title
+            '33 SEARCH + RERANK',                   // Menu title
             'manage_options',            
-            'fts-query-builder',            // Menu slug
+            'fts-query-builder-reranking',            // Menu slug
             array($this, 'render_admin_page'), // Callback function
             'dashicons-search',             // Icon
-            4.71                             // Position
+            4.97                             // Position
         );
     }
     
@@ -54,7 +54,7 @@ class FTS_Query_Builder {
      */
     public function enqueue_admin_assets($hook) {
         // Only load on our admin page
-        if ($hook !== 'toplevel_page_fts-query-builder') {
+        if ($hook !== 'toplevel_page_fts-query-builder-reranking') {
             return;
         }
         
@@ -72,8 +72,8 @@ class FTS_Query_Builder {
     public function render_admin_page() {
         ?>
         <div class="wrap">
-            <h1>FTS Query Builder</h1>
-            <p>Generate advanced search queries with operators for WordPress Full Text Search</p>
+            <h1>FTS Query Builder + Reranking</h1>
+            <p>Generate advanced search queries with operators and review the reranked output.</p>
             
             <style>
                 .fts-admin-container {
@@ -300,7 +300,7 @@ class FTS_Query_Builder {
 
                 <div class="fts-admin-info-box" style="background: #fcf8e3; border-left-color: #f0ad4e;">
                     <h3>Using the Shortcode:</h3>
-                    <p>Add <code>[fts_search_form]</code> to any page or post to display this form on the frontend.</p>
+                    <p>Add <code>[fts_search_form_reranking]</code> to any page or post to display this form on the frontend.</p>
                 </div>
             </div>
 
@@ -315,106 +315,96 @@ class FTS_Query_Builder {
                     </div>
                 </div>
 
+                <div id="fts-admin-rerank-result" class="fts-admin-result" style="border-left-color:#6a1b9a; background:#f5f3ff;">
+                    <h3>Reranked Results (Final Set)</h3>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">This output is fetched from <code>/wp-json/reranker/v1/reranked</code> using the generated query.</p>
+                    <div id="fts-admin-rerank-results" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
+                </div>
+
                 <div class="fts-admin-info-box" style="background: #fff3e0; border-left-color: #ff9800;">
-                    <h3>💡 Real-World Search Examples</h3>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #e65100;">Example 1: E-commerce Product Search - Memory Foam Pillow</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find affordable memory foam pillows with specific features</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">pillow</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">memory foam bamboo hypoallergenic</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">premium expensive luxury</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">adjust</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Exact Phrase:</strong></td><td style="padding: 5px; background: #fff;">machine washable</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #f5f5f5;">price&lt;60</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">cooling breathable</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>pillow +memory +foam +bamboo +hypoallergenic -premium -expensive -luxury adjust* "machine washable" &lt;price&lt;60 (cooling|breathable)</code><br>
-                            <strong>API URL:</strong> <code><?php echo esc_html(get_site_url()); ?>/wp-json/search/v1/hybrid-search?query=[encoded]</code>
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #1565c0;">Example 2: WordPress Plugin Search</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find free SEO plugins for WordPress</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">wordpress plugin</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">SEO free</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">premium paid pro</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">optim</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">beginner easy simple</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>wordpress plugin +SEO +free -premium -paid -pro optim* (beginner|easy|simple)</code>
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #6a1b9a;">Example 3: Tutorial Search with Skill Level</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find beginner Python tutorials, excluding advanced topics</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">python</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">beginner tutorial</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">advanced expert intermediate</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">learn</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">guide course lesson</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>python +beginner +tutorial -advanced -expert -intermediate learn* (guide|course|lesson)</code>
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #2e7d32;">Example 4: E-commerce - Laptop Search</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find affordable laptops with specific specs</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">laptop</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">SSD 16GB</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">refurbished used</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #f5f5f5;">price&lt;1000</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #fff;">Dell HP Lenovo</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>laptop +SSD +16GB -refurbished -used &lt;price&lt;1000 (Dell|HP|Lenovo)</code>
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #c62828;">Example 5: Job Search</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find remote developer jobs with good salary</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #fff;">developer remote</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">junior intern unpaid</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Wildcard:</strong></td><td style="padding: 5px; background: #f5f5f5;">develop</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Greater Than:</strong></td><td style="padding: 5px; background: #fff;">salary&gt;80000</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #f5f5f5;">Python JavaScript React</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>+developer +remote -junior -intern -unpaid develop* &gt;salary&gt;80000 (Python|JavaScript|React)</code>
-                        </p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="margin-bottom: 5px; color: #f57f17;">Example 6: Recipe Search</h4>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Scenario:</strong> Find healthy, quick dinner recipes</p>
-                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Basic Query:</strong></td><td style="padding: 5px; background: #fff;">dinner recipe</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Must Contain:</strong></td><td style="padding: 5px; background: #f5f5f5;">healthy quick</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Must NOT Contain:</strong></td><td style="padding: 5px; background: #fff;">fried dessert</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>Exact Phrase:</strong></td><td style="padding: 5px; background: #f5f5f5;">30 minutes</td></tr>
-                            <tr><td style="padding: 5px; background: #fff;"><strong>Less Than:</strong></td><td style="padding: 5px; background: #fff;">calories&lt;500</td></tr>
-                            <tr><td style="padding: 5px; background: #f5f5f5;"><strong>OR Terms:</strong></td><td style="padding: 5px; background: #f5f5f5;">chicken fish vegetarian</td></tr>
-                        </table>
-                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                            <strong>Result Query:</strong> <code>dinner recipe +healthy +quick -fried -dessert "30 minutes" &lt;calories&lt;500 (chicken|fish|vegetarian)</code>
-                        </p>
-                    </div>
+                    <h3>Reranked Output (Final Result Set)</h3>
+                    <p>The reranker endpoint combines Fulltext + Vector results, normalizes scores, and returns a final list ordered by the combined score.</p>
+                    <p><strong>Endpoint:</strong> <code><?php echo esc_html(get_site_url()); ?>/wp-json/reranker/v1/reranked?query=YOUR_QUERY</code></p>
+                    <p><strong>Output Fields:</strong></p>
+                    <ul>
+                        <li><strong>post_id</strong> - WordPress post ID</li>
+                        <li><strong>post_title</strong> - Title of the result</li>
+                        <li><strong>excerpt</strong> - Summary text used in cards</li>
+                        <li><strong>relevance_score</strong> - Fulltext score (FTS)</li>
+                        <li><strong>similarity_score</strong> - Vector similarity score</li>
+                        <li><strong>method</strong> - FTS, VECTOR, or FTS+VECTOR</li>
+                        <li><strong>position</strong> - Final ordering after reranking</li>
+                    </ul>
+                    <p><strong>Response Shape:</strong></p>
+                    <pre style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;">
+{
+  "success": true,
+  "query": "foam products",
+  "method": "reranking",
+  "results": [
+    {
+      "post_id": 101,
+      "post_title": "Memory Foam Pillow",
+      "excerpt": "...",
+      "relevance_score": 12.45,
+      "similarity_score": 0.82,
+      "method": "FTS+VECTOR",
+      "position": 1
+    }
+  ],
+  "count": 6
+}
+                    </pre>
                 </div>
 
             <script>
             jQuery(document).ready(function($) {
+                function renderRerankAdmin(results) {
+                    const $container = $('#fts-admin-rerank-results');
+                    $container.empty();
+
+                    if (!Array.isArray(results) || results.length === 0) {
+                        $container.append('<p style="font-size:13px;color:#6b7280;margin:0;">No reranked results returned.</p>');
+                        return;
+                    }
+
+                    results.forEach(function(item) {
+                        const title = item.post_title || 'Untitled';
+                        const excerpt = item.excerpt || item.content || item.post_content || '';
+                        const method = item.method || 'UNKNOWN';
+                        const relevance = typeof item.relevance_score !== 'undefined' ? Number(item.relevance_score).toFixed(4) : '0.0000';
+                        const similarity = typeof item.similarity_score !== 'undefined' ? Number(item.similarity_score).toFixed(4) : '0.0000';
+                        const position = item.position || '-';
+                        const link = item.url || item.permalink || '';
+
+                        const card = `
+                            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;box-shadow:0 4px 10px rgba(17,24,39,0.06);">
+                                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                                    <h4 style="margin:0;font-size:15px;color:#1f2937;">${title}</h4>
+                                    <span style="background:#ede9fe;color:#6d28d9;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;">#${position}</span>
+                                </div>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;">
+                                    <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">${method}</span>
+                                    <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">FTS: ${relevance}</span>
+                                    <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">Vector: ${similarity}</span>
+                                </div>
+                                <p style="font-size:13px;color:#374151;line-height:1.5;margin-bottom:12px;">${excerpt}</p>
+                                ${link ? `<a href="${link}" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none;">View Result</a>` : ''}
+                            </div>
+                        `;
+                        $container.append(card);
+                    });
+                }
+
+                function fetchRerankAdmin(query) {
+                    const endpoint = '<?php echo esc_js(rest_url('reranker/v1/reranked')); ?>';
+                    const url = `${endpoint}?query=${encodeURIComponent(query)}`;
+                    return $.ajax({
+                        url: url,
+                        type: 'GET'
+                    });
+                }
+
                 // Load example data
                 $('#fts-load-example').on('click', function() {
                     $('#fts-admin-basic-query').val('pillow');
@@ -438,11 +428,13 @@ class FTS_Query_Builder {
                         scrollTop: $('#fts-admin-search-form').offset().top - 50
                     }, 500);
                 });
-                
+
                 // Clear form
                 $('#fts-clear-form').on('click', function() {
                     $('#fts-admin-search-form')[0].reset();
                     $('#fts-admin-result').removeClass('show');
+                    $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-rerank-results').empty();
                 });
                 
                 $('#fts-admin-search-form').on('submit', function(e) {
@@ -463,6 +455,9 @@ class FTS_Query_Builder {
                         return;
                     }
                     
+                    $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-rerank-results').empty();
+
                     $.ajax({
                         url: ftsAjax.ajaxurl,
                         type: 'POST',
@@ -484,6 +479,23 @@ class FTS_Query_Builder {
                                 $('#fts-admin-encoded-query').text(response.data.encoded);
                                 $('#fts-admin-example-url').text(response.data.url);
                                 $('#fts-admin-result').addClass('show');
+
+                                const query = response.data.query || basicQuery;
+                                if (query) {
+                                    fetchRerankAdmin(query)
+                                        .done(function(rerankResponse) {
+                                            if (rerankResponse && rerankResponse.success) {
+                                                renderRerankAdmin(rerankResponse.results || []);
+                                            } else {
+                                                renderRerankAdmin([]);
+                                            }
+                                            $('#fts-admin-rerank-result').addClass('show');
+                                        })
+                                        .fail(function() {
+                                            renderRerankAdmin([]);
+                                            $('#fts-admin-rerank-result').addClass('show');
+                                        });
+                                }
                                 
                                 $('html, body').animate({
                                     scrollTop: $('#fts-admin-result').offset().top - 100
@@ -548,7 +560,9 @@ class FTS_Query_Builder {
         
         wp_localize_script('fts-query-builder-script', 'ftsAjax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('fts_query_nonce')
+            'nonce' => wp_create_nonce('fts_query_nonce'),
+            'rerankEndpoint' => rest_url('reranker/v1/reranked'),
+            'siteUrl' => get_site_url()
         ));
     }
     
@@ -750,6 +764,12 @@ class FTS_Query_Builder {
                     <code id="fts-example-url"></code>
                 </div>
             </div>
+
+            <div id="fts-rerank-result" class="fts-result fts-rerank-result" style="display: none;">
+                <h3>Reranked Results (Final Set)</h3>
+                <p class="fts-rerank-help">Results are fetched from <code class="fts-inline-code">/wp-json/reranker/v1/reranked</code> using your query.</p>
+                <div id="fts-rerank-results" class="fts-rerank-grid"></div>
+            </div>
         </div>
         <?php
         return ob_get_clean();
@@ -757,4 +777,4 @@ class FTS_Query_Builder {
 }
 
 // Initialize plugin
-new FTS_Query_Builder();
+new FTS_Query_Builder_Reranking();
