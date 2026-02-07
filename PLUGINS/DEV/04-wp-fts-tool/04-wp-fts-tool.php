@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ✅ 04 FTS TOOL
  * Plugin URI: https://example.com/fts-teaching
- * Description: Interactive demonstration of different Full-Text Search methods (TF, IDF, BM25, Natural, Boolean, Expansion) for teaching purposes
+ * Description: Interactive demonstration of core Full-Text Search algorithms (TF, IDF, TF-IDF, BM25) for teaching purposes
  * Version: 1.0.0
  * Author: Your Name
  * Author URI: https://example.com
@@ -37,7 +37,7 @@ class FTS_Teaching_Plugin {
             3.4
         );
     }
-    
+
     public function enqueue_scripts($hook) {
         if ($hook !== 'toplevel_page_fts-teaching') {
             return;
@@ -51,7 +51,7 @@ class FTS_Teaching_Plugin {
             'nonce' => wp_create_nonce('fts_search_nonce')
         ));
     }
-    
+    // #region docs
     private function init_documents() {
         $this->documents = array(
             array(
@@ -125,15 +125,6 @@ class FTS_Teaching_Plugin {
             case 'bm25':
                 $results = $this->search_bm25($query);
                 break;
-            case 'natural':
-                $results = $this->search_natural($query);
-                break;
-            case 'boolean':
-                $results = $this->search_boolean($query);
-                break;
-            case 'expansion':
-                $results = $this->search_expansion($query);
-                break;
         }
         
         wp_send_json_success($results);
@@ -142,20 +133,35 @@ class FTS_Teaching_Plugin {
     private function search_tf($query) {
         $terms = array_map('strtolower', explode(' ', $query));
         $scores = array();
+        $total_docs = count($this->documents);
         
         foreach ($this->documents as $doc) {
             $content = strtolower($doc['title'] . ' ' . $doc['content']);
+            $doc_length = str_word_count($content);
             $score = 0;
+            $term_details = array();
             
             foreach ($terms as $term) {
-                $score += substr_count($content, $term);
+                $count = substr_count($content, $term);
+                if ($count > 0) {
+                    $score += $count;
+                    $term_details[] = "$term: $count";
+                }
             }
             
             if ($score > 0) {
                 $scores[] = array(
                     'doc' => $doc,
                     'score' => $score,
-                    'explanation' => "Term frequency: $score occurrences"
+                    'explanation' => "Total TF: $score",
+                    'details' => array(
+                        'method' => 'Term Frequency (TF)',
+                        'formula' => 'TF = count of term in document',
+                        'term_breakdown' => implode(', ', $term_details),
+                        'total_score' => $score,
+                        'doc_length' => $doc_length,
+                        'note' => 'TF rewards documents with more term occurrences'
+                    )
                 );
             }
         }
@@ -170,10 +176,11 @@ class FTS_Teaching_Plugin {
     private function search_tfidf($query) {
         $terms = array_map('strtolower', explode(' ', $query));
         $scores = array();
-        
-        // Calculate IDF for each term
-        $idf = array();
         $total_docs = count($this->documents);
+        
+        // Calculate IDF for each term across all documents
+        $idf = array();
+        $idf_details = array();
         
         foreach ($terms as $term) {
             $docs_with_term = 0;
@@ -183,21 +190,35 @@ class FTS_Teaching_Plugin {
                     $docs_with_term++;
                 }
             }
-            $idf[$term] = $docs_with_term > 0 ? log($total_docs / $docs_with_term) : 0;
+            $raw_idf = $docs_with_term > 0 ? log($total_docs / $docs_with_term) : 0;
+            $idf[$term] = $raw_idf;
+            $idf_details[$term] = array(
+                'docs_with_term' => $docs_with_term,
+                'total_docs' => $total_docs,
+                'calculation' => "log($total_docs / $docs_with_term) = " . round($raw_idf, 4)
+            );
         }
         
         // Calculate TF-IDF scores
         foreach ($this->documents as $doc) {
             $content = strtolower($doc['title'] . ' ' . $doc['content']);
+            $doc_length = str_word_count($content);
             $score = 0;
-            $details = array();
+            $term_calculations = array();
             
             foreach ($terms as $term) {
                 $tf = substr_count($content, $term);
-                $tfidf = $tf * $idf[$term];
-                $score += $tfidf;
                 if ($tf > 0) {
-                    $details[] = "$term: TF=$tf × IDF=" . round($idf[$term], 2) . " = " . round($tfidf, 2);
+                    $tfidf = $tf * $idf[$term];
+                    $score += $tfidf;
+                    $term_calculations[] = array(
+                        'term' => $term,
+                        'tf' => $tf,
+                        'idf' => round($idf[$term], 4),
+                        'tfidf' => round($tfidf, 4),
+                        'rarity' => $idf_details[$term]['docs_with_term'] === 1 ? 'Very Rare' : 
+                                   ($idf_details[$term]['docs_with_term'] <= 3 ? 'Rare' : 'Common')
+                    );
                 }
             }
             
@@ -205,7 +226,16 @@ class FTS_Teaching_Plugin {
                 $scores[] = array(
                     'doc' => $doc,
                     'score' => round($score, 2),
-                    'explanation' => implode(', ', $details)
+                    'explanation' => "TF-IDF Score: " . round($score, 2),
+                    'details' => array(
+                        'method' => 'TF-IDF (Term Frequency × Inverse Document Frequency)',
+                        'formula' => 'TF-IDF = TF × IDF, where IDF = log(N / df)',
+                        'idf_summary' => $idf_details,
+                        'term_calculations' => $term_calculations,
+                        'total_score' => round($score, 4),
+                        'doc_length' => $doc_length,
+                        'note' => 'TF-IDF balances term frequency with rarity - rare terms get higher weight'
+                    )
                 );
             }
         }
@@ -220,17 +250,22 @@ class FTS_Teaching_Plugin {
     private function search_bm25($query, $k1 = 1.5, $b = 0.75) {
         $terms = array_map('strtolower', explode(' ', $query));
         $scores = array();
+        $total_docs = count($this->documents);
         
-        // Calculate average document length
+        // Calculate document lengths and average
+        $doc_lengths = array();
         $total_length = 0;
         foreach ($this->documents as $doc) {
-            $total_length += str_word_count($doc['title'] . ' ' . $doc['content']);
+            $length = str_word_count($doc['title'] . ' ' . $doc['content']);
+            $doc_lengths[$doc['id']] = $length;
+            $total_length += $length;
         }
-        $avg_length = $total_length / count($this->documents);
+        $avg_length = $total_length / $total_docs;
         
-        // Calculate IDF
+        // Calculate IDF with BM25's specific formula
         $idf = array();
-        $total_docs = count($this->documents);
+        $idf_details = array();
+        
         foreach ($terms as $term) {
             $docs_with_term = 0;
             foreach ($this->documents as $doc) {
@@ -239,20 +274,40 @@ class FTS_Teaching_Plugin {
                     $docs_with_term++;
                 }
             }
-            $idf[$term] = log(($total_docs - $docs_with_term + 0.5) / ($docs_with_term + 0.5) + 1);
+            // BM25 IDF formula
+            $raw_idf = log(($total_docs - $docs_with_term + 0.5) / ($docs_with_term + 0.5) + 1);
+            $idf[$term] = $raw_idf;
+            $idf_details[$term] = array(
+                'docs_with_term' => $docs_with_term,
+                'total_docs' => $total_docs,
+                'calculation' => "log(($total_docs - $docs_with_term + 0.5) / ($docs_with_term + 0.5) + 1) = " . round($raw_idf, 4)
+            );
         }
         
         // Calculate BM25 scores
         foreach ($this->documents as $doc) {
             $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $doc_length = str_word_count($content);
+            $doc_length = $doc_lengths[$doc['id']];
             $score = 0;
+            $term_calculations = array();
             
             foreach ($terms as $term) {
                 $tf = substr_count($content, $term);
                 if ($tf > 0) {
+                    // BM25 term frequency saturation
                     $norm = 1 - $b + $b * ($doc_length / $avg_length);
-                    $score += $idf[$term] * ($tf * ($k1 + 1)) / ($tf + $k1 * $norm);
+                    $denominator = $tf + $k1 * $norm;
+                    $term_score = $idf[$term] * ($tf * ($k1 + 1)) / $denominator;
+                    $score += $term_score;
+                    
+                    $term_calculations[] = array(
+                        'term' => $term,
+                        'raw_tf' => $tf,
+                        'idf' => round($idf[$term], 4),
+                        'length_norm' => round($norm, 4),
+                        'saturated_tf' => round(($tf * ($k1 + 1)) / $denominator, 4),
+                        'term_score' => round($term_score, 4)
+                    );
                 }
             }
             
@@ -260,176 +315,23 @@ class FTS_Teaching_Plugin {
                 $scores[] = array(
                     'doc' => $doc,
                     'score' => round($score, 2),
-                    'explanation' => "BM25 score with saturation (k1=$k1, b=$b)"
-                );
-            }
-        }
-        
-        usort($scores, function($a, $b) {
-            return $b['score'] <=> $a['score'];
-        });
-        
-        return $scores;
-    }
-    
-    private function search_natural($query) {
-        $terms = array_map('strtolower', explode(' ', $query));
-        $scores = array();
-        
-        foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $words = explode(' ', $content);
-            $score = 0;
-            $proximity_bonus = 0;
-            
-            // Find positions of query terms
-            $positions = array();
-            foreach ($terms as $term) {
-                $positions[$term] = array();
-                foreach ($words as $idx => $word) {
-                    if (strpos($word, $term) !== false) {
-                        $positions[$term][] = $idx;
-                        $score += 1;
-                    }
-                }
-            }
-            
-            // Calculate proximity bonus
-            if (count($terms) > 1) {
-                foreach ($positions as $term_positions) {
-                    foreach ($term_positions as $pos) {
-                        foreach ($terms as $other_term) {
-                            if (isset($positions[$other_term])) {
-                                foreach ($positions[$other_term] as $other_pos) {
-                                    $distance = abs($pos - $other_pos);
-                                    if ($distance > 0 && $distance <= 5) {
-                                        $proximity_bonus += (5 - $distance) / 5;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            $total_score = $score + $proximity_bonus;
-            
-            if ($total_score > 0) {
-                $scores[] = array(
-                    'doc' => $doc,
-                    'score' => round($total_score, 2),
-                    'explanation' => "Base: $score + Proximity: " . round($proximity_bonus, 2)
-                );
-            }
-        }
-        
-        usort($scores, function($a, $b) {
-            return $b['score'] <=> $a['score'];
-        });
-        
-        return $scores;
-    }
-    
-    private function search_boolean($query) {
-        $query = strtolower($query);
-        $results = array();
-        
-        foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $match = $this->evaluate_boolean($query, $content);
-            
-            if ($match) {
-                $results[] = array(
-                    'doc' => $doc,
-                    'score' => 1,
-                    'explanation' => "Boolean match"
-                );
-            }
-        }
-        
-        return $results;
-    }
-    
-    private function evaluate_boolean($query, $content) {
-        // Simple boolean evaluation (supports AND, OR, NOT)
-        $query = str_replace(' and ', ' AND ', $query);
-        $query = str_replace(' or ', ' OR ', $query);
-        $query = str_replace(' not ', ' NOT ', $query);
-        
-        // Handle NOT
-        if (preg_match('/NOT\s+(\w+)/', $query, $matches)) {
-            if (strpos($content, strtolower($matches[1])) !== false) {
-                return false;
-            }
-            $query = preg_replace('/NOT\s+\w+/', '', $query);
-        }
-        
-        // Handle AND
-        if (strpos($query, ' AND ') !== false) {
-            $terms = explode(' AND ', $query);
-            foreach ($terms as $term) {
-                $term = trim($term);
-                if (!empty($term) && strpos($content, strtolower($term)) === false) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        
-        // Handle OR
-        if (strpos($query, ' OR ') !== false) {
-            $terms = explode(' OR ', $query);
-            foreach ($terms as $term) {
-                $term = trim($term);
-                if (!empty($term) && strpos($content, strtolower($term)) !== false) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        // Simple term search
-        return strpos($content, $query) !== false;
-    }
-    
-    private function search_expansion($query) {
-        $expansions = array(
-            'ai' => array('artificial intelligence', 'machine learning'),
-            'ml' => array('machine learning'),
-            'nlp' => array('natural language processing'),
-            'nn' => array('neural network'),
-            'dl' => array('deep learning')
-        );
-        
-        $query_lower = strtolower($query);
-        $expanded_terms = array($query_lower);
-        
-        foreach ($expansions as $abbr => $full_terms) {
-            if (strpos($query_lower, $abbr) !== false) {
-                $expanded_terms = array_merge($expanded_terms, $full_terms);
-            }
-        }
-        
-        $scores = array();
-        
-        foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $score = 0;
-            $matched_terms = array();
-            
-            foreach ($expanded_terms as $term) {
-                $count = substr_count($content, $term);
-                if ($count > 0) {
-                    $score += $count;
-                    $matched_terms[] = $term;
-                }
-            }
-            
-            if ($score > 0) {
-                $scores[] = array(
-                    'doc' => $doc,
-                    'score' => $score,
-                    'explanation' => "Matched: " . implode(', ', $matched_terms)
+                    'explanation' => "BM25 Score: " . round($score, 2) . " (k1=$k1, b=$b)",
+                    'details' => array(
+                        'method' => 'BM25 (Best Match 25)',
+                        'formula' => 'BM25 = IDF × (TF × (k1+1)) / (TF + k1 × (1-b + b×(doc_len/avg_len)))',
+                        'parameters' => array(
+                            'k1' => $k1,
+                            'b' => $b,
+                            'k1_explanation' => 'Controls term frequency saturation (higher = less saturation)',
+                            'b_explanation' => 'Controls length normalization (0 = no normalization, 1 = full normalization)'
+                        ),
+                        'avg_doc_length' => round($avg_length, 2),
+                        'this_doc_length' => $doc_length,
+                        'idf_summary' => $idf_details,
+                        'term_calculations' => $term_calculations,
+                        'total_score' => round($score, 4),
+                        'note' => 'BM25 prevents over-weighting of repeated terms through saturation'
+                    )
                 );
             }
         }
@@ -444,7 +346,8 @@ class FTS_Teaching_Plugin {
     public function render_admin_page() {
         ?>
         <div class="wrap fts-teaching-wrap">
-            <h1>Full-Text Search Methods Teaching Tool</h1>
+            <h1>Full-Text Search Algorithms Teaching Tool</h1>
+            <p style="font-size: 14px; color: #666;">Explore TF, IDF, TF-IDF, and BM25 scoring algorithms with detailed mathematical breakdowns.</p>
             
             <div class="fts-container">
                 <div class="fts-search-panel">
@@ -457,30 +360,26 @@ class FTS_Teaching_Plugin {
                             <option value="tf">Term Frequency (TF)</option>
                             <option value="idf" selected>TF-IDF</option>
                             <option value="bm25">BM25</option>
-                            <option value="natural">Natural (Positional)</option>
-                            <option value="boolean">Boolean</option>
-                            <option value="expansion">Query Expansion</option>
                         </select>
                         
                         <button id="fts-search-btn" class="button button-primary">Search</button>
                     </div>
                     
                     <div class="fts-method-info">
-                        <h3>Method Descriptions</h3>
+                        <h3>Algorithm Descriptions</h3>
                         <ul>
-                            <li><strong>TF:</strong> Counts term occurrences (rewards repetition)</li>
-                            <li><strong>TF-IDF:</strong> Balances frequency with rarity across documents</li>
-                            <li><strong>BM25:</strong> Prevents over-weighting repeated terms (saturation)</li>
-                            <li><strong>Natural:</strong> Base score = term count, Proximity bonus = (5-distance)/5 for term pairs within 5 words</li>
-                            <li><strong>Boolean:</strong> Strict AND/OR/NOT matching</li>
-                            <li><strong>Expansion:</strong> Expands abbreviations (AI→artificial intelligence)</li>
+                            <li><strong>TF (Term Frequency):</strong> Simple count of term occurrences. Rewards repetition without limit.</li>
+                            <li><strong>TF-IDF:</strong> Multiplies TF by IDF (Inverse Document Frequency). Rare terms get higher weight.</li>
+                            <li><strong>BM25:</strong> Applies saturation to TF and includes length normalization. Prevents keyword stuffing from dominating results.</li>
                         </ul>
-                        <div class="fts-scoring-details" style="margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 3px; font-size: 12px;">
-                            <strong>Scoring Details:</strong>
-                            <ul style="margin: 5px 0 0 0; padding-left: 15px;">
-                                <li><strong>Base Score:</strong> Number of times query terms appear in document</li>
-                                <li><strong>Proximity Bonus:</strong> For each pair of query terms within 5 words: (5 - distance) ÷ 5</li>
-                                <li><strong>Example:</strong> "Base: 4 + Proximity: 1.6" means 4 term matches + 1.6 proximity bonus</li>
+                        
+                        <div class="fts-scoring-details" style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 5px; font-size: 13px;">
+                            <strong>Key Formulas:</strong>
+                            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                                <li><strong>TF:</strong> Raw count of term in document</li>
+                                <li><strong>IDF:</strong> log(Total Docs / Docs with Term)</li>
+                                <li><strong>TF-IDF:</strong> TF × IDF</li>
+                                <li><strong>BM25:</strong> IDF × (TF×(k1+1)) / (TF + k1×(1-b + b×(L/avgL)))</li>
                             </ul>
                         </div>
                     </div>
@@ -488,21 +387,18 @@ class FTS_Teaching_Plugin {
                     <div class="fts-example-queries">
                         <h3>Example Queries</h3>
                         <ul>
-                            <li><code>machine learning</code> - Compare TF vs BM25 (note repetition weighting)</li>
-                            <li><code>reinforcement</code> - See IDF for rare terms vs common terms</li>
-                            <li><code>neural network training</code> - Test positional ranking (proximity bonus)</li>
-                            <li><code>machine AND learning NOT deep</code> - Boolean query (strict matching)</li>
-                            <li><code>AI</code> - Query expansion demo (abbreviations expanded)</li>
-                            <li><code>learning learning learning</code> - TF vs BM25 saturation effect</li>
-                            <li><code>data</code> - Common term (low IDF) vs rare term ranking</li>
-                            <li><code>artificial intelligence OR machine learning</code> - Boolean OR operation</li>
-                            <li><code>deep learning neural</code> - Natural search proximity scoring</li>
-                            <li><code>vision computer</code> - Compare positional vs TF ranking</li>
-                            <li><code>NOT supervised</code> - Boolean NOT exclusion</li>
-                            <li><code>nlp OR processing language</code> - Mixed boolean and natural search</li>
-                            <li><code>ML</code> - Query expansion (ML → machine learning)</li>
-                            <li><code>training algorithm model</code> - Multiple term positional ranking</li>
+                            <li><code>machine learning</code> - Compare TF vs BM25 saturation effect</li>
+                            <li><code>learning</code> - See how common terms score differently</li>
+                            <li><code>reinforcement</code> - Rare term gets high IDF weight</li>
+                            <li><code>neural network</code> - Multiple term scoring</li>
+                            <li><code>deep</code> - Compare across all three algorithms</li>
+                            <li><code>machine learning machine learning</code> - TF explosion vs BM25 saturation</li>
+                            <li><code>data</code> - Very common term (appears in many docs)</li>
+                            <li><code>artificial intelligence</code> - Test phrase scoring</li>
                         </ul>
+                        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                            <strong>Tip:</strong> Try the same query with different algorithms to see how scoring differs!
+                        </p>
                     </div>
                 </div>
                 
@@ -510,14 +406,12 @@ class FTS_Teaching_Plugin {
                     <h2>Search Results</h2>
                     <div id="fts-results" class="fts-results">
                         <p class="fts-placeholder">Enter a query and click Search to see results...</p>
-
-                  
                     </div>
                 </div>
             </div>
             
             <div class="fts-documents-section">
-                <h2>Document Collection</h2>
+                <h2>Document Collection (<?php echo count($this->documents); ?> documents)</h2>
                 <div class="fts-documents">
                     <?php foreach ($this->documents as $doc): ?>
                         <div class="fts-document">
@@ -591,7 +485,14 @@ class FTS_Teaching_Plugin {
         .fts-method-info li,
         .fts-example-queries li {
             font-size: 13px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+        }
+        
+        .fts-example-queries code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
         }
         
         .fts-results {
@@ -657,6 +558,58 @@ class FTS_Teaching_Plugin {
             border: 1px solid #46b450;
         }
         
+        .fts-result-details {
+            margin-top: 12px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 5px;
+            font-size: 13px;
+            border: 1px solid #c5d9f1;
+        }
+        
+        .fts-result-details h4 {
+            margin: 0 0 10px 0;
+            color: #2271b1;
+            font-size: 14px;
+        }
+        
+        .fts-result-details .formula {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 8px 0;
+            border-left: 3px solid #2271b1;
+        }
+        
+        .fts-result-details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        
+        .fts-result-details th,
+        .fts-result-details td {
+            border: 1px solid #c5d9f1;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        
+        .fts-result-details th {
+            background: #e8f0fe;
+            font-weight: 600;
+        }
+        
+        .fts-result-details .note {
+            margin-top: 10px;
+            padding: 8px;
+            background: #fff3cd;
+            border-radius: 3px;
+            color: #856404;
+            font-style: italic;
+        }
+        
         .fts-documents-section {
             margin-top: 30px;
         }
@@ -694,6 +647,18 @@ class FTS_Teaching_Plugin {
             text-align: center;
             padding: 20px;
             color: #666;
+        }
+        
+        .fts-parameter-box {
+            background: #fff;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+        }
+        
+        .fts-parameter-box strong {
+            color: #2271b1;
         }
         </style>
         
@@ -744,7 +709,8 @@ class FTS_Teaching_Plugin {
                     return;
                 }
                 
-                var html = '<h3>Found ' + results.length + ' result(s) using ' + method.toUpperCase() + '</h3>';
+                var methodName = method.toUpperCase();
+                var html = '<h3>Found ' + results.length + ' result(s) using ' + methodName + '</h3>';
                 
                 results.forEach(function(result, index) {
                     html += '<div class="fts-result-item">';
@@ -753,6 +719,95 @@ class FTS_Teaching_Plugin {
                     html += '<div class="fts-result-title">Doc ' + result.doc.id + ': ' + result.doc.title + '</div>';
                     html += '<div class="fts-result-content">' + result.doc.content + '</div>';
                     html += '<div class="fts-result-explanation">' + result.explanation + '</div>';
+                    
+                    // Add detailed breakdown
+                    if (result.details) {
+                        html += '<div class="fts-result-details">';
+                        html += '<h4>📊 ' + result.details.method + ' Breakdown</h4>';
+                        
+                        if (result.details.formula) {
+                            html += '<div class="formula">' + result.details.formula + '</div>';
+                        }
+                        
+                        // Parameters section (for BM25)
+                        if (result.details.parameters) {
+                            html += '<div class="fts-parameter-box">';
+                            html += '<strong>Parameters:</strong><br>';
+                            html += 'k1 = ' + result.details.parameters.k1 + ' - ' + result.details.parameters.k1_explanation + '<br>';
+                            html += 'b = ' + result.details.parameters.b + ' - ' + result.details.parameters.b_explanation;
+                            html += '</div>';
+                        }
+                        
+                        // IDF Summary
+                        if (result.details.idf_summary) {
+                            html += '<strong>IDF Calculations:</strong>';
+                            html += '<table>';
+                            html += '<tr><th>Term</th><th>Docs With Term</th><th>Calculation</th></tr>';
+                            for (var term in result.details.idf_summary) {
+                                var idfInfo = result.details.idf_summary[term];
+                                html += '<tr>';
+                                html += '<td><code>' + term + '</code></td>';
+                                html += '<td>' + idfInfo.docs_with_term + ' / ' + idfInfo.total_docs + '</td>';
+                                html += '<td>' + idfInfo.calculation + '</td>';
+                                html += '</tr>';
+                            }
+                            html += '</table>';
+                        }
+                        
+                        // Term calculations table
+                        if (result.details.term_calculations && result.details.term_calculations.length > 0) {
+                            html += '<strong>Per-Term Scoring:</strong>';
+                            html += '<table>';
+                            
+                            // Different headers based on method
+                            if (method === 'tf') {
+                                html += '<tr><th>Term</th><th>TF (Count)</th></tr>';
+                                result.details.term_calculations.forEach(function(calc) {
+                                    html += '<tr><td><code>' + calc.term + '</code></td><td>' + calc.tf + '</td></tr>';
+                                });
+                            } else if (method === 'idf') {
+                                html += '<tr><th>Term</th><th>TF</th><th>IDF</th><th>TF×IDF</th><th>Rarity</th></tr>';
+                                result.details.term_calculations.forEach(function(calc) {
+                                    html += '<tr>';
+                                    html += '<td><code>' + calc.term + '</code></td>';
+                                    html += '<td>' + calc.tf + '</td>';
+                                    html += '<td>' + calc.idf + '</td>';
+                                    html += '<td><strong>' + calc.tfidf + '</strong></td>';
+                                    html += '<td>' + calc.rarity + '</td>';
+                                    html += '</tr>';
+                                });
+                            } else if (method === 'bm25') {
+                                html += '<tr><th>Term</th><th>Raw TF</th><th>IDF</th><th>Length Norm</th><th>Saturated TF</th><th>Score</th></tr>';
+                                result.details.term_calculations.forEach(function(calc) {
+                                    html += '<tr>';
+                                    html += '<td><code>' + calc.term + '</code></td>';
+                                    html += '<td>' + calc.raw_tf + '</td>';
+                                    html += '<td>' + calc.idf + '</td>';
+                                    html += '<td>' + calc.length_norm + '</td>';
+                                    html += '<td>' + calc.saturated_tf + '</td>';
+                                    html += '<td><strong>' + calc.term_score + '</strong></td>';
+                                    html += '</tr>';
+                                });
+                            }
+                            html += '</table>';
+                        }
+                        
+                        // Document info
+                        html += '<div style="margin-top: 10px; font-size: 12px; color: #666;">';
+                        html += 'Document Length: ' + result.details.doc_length + ' words';
+                        if (result.details.avg_doc_length) {
+                            html += ' | Average Doc Length: ' + result.details.avg_doc_length + ' words';
+                        }
+                        html += '</div>';
+                        
+                        // Note
+                        if (result.details.note) {
+                            html += '<div class="note">💡 ' + result.details.note + '</div>';
+                        }
+                        
+                        html += '</div>';
+                    }
+                    
                     html += '</div>';
                 });
                 
