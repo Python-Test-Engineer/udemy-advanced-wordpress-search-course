@@ -126,7 +126,7 @@ jQuery(document).ready(function ($) {
 
     // Copy to clipboard functionality
     $('#fts-copy-btn').on('click', function () {
-        const text = $('#fts-encoded-query').text();
+        const text = $('#fts-example-url').text();
         const $btn = $(this);
         const originalText = $btn.text();
 

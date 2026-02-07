@@ -511,7 +511,7 @@ class FTS_Query_Builder_Reranking {
                 });
                 
                 $('#fts-admin-copy-btn').on('click', function() {
-                    const text = $('#fts-admin-encoded-query').text();
+                    const text = $('#fts-admin-example-url').text();
                     const $btn = $(this);
                     const originalText = $btn.text();
                     
