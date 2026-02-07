@@ -383,8 +383,10 @@ class FTS_Query_Builder_Reranking {
                                     <h4 style="margin:0;font-size:15px;color:#1f2937;">${title}</h4>
                                     <span style="background:#ede9fe;color:#6d28d9;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;">#${position}</span>
                                 </div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px;">
                                     <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">${method}</span>
+                                </div>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;">
                                     <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">FTS: ${relevance}</span>
                                     <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">Vector: ${similarity}</span>
                                 </div>

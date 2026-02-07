@@ -239,6 +239,10 @@
     margin: 10px 0 12px;
 }
 
+.fts-rerank-meta-row {
+    margin-top: 0;
+}
+
 .fts-rerank-badge {
     background: #f3f4f6;
     color: #111827;

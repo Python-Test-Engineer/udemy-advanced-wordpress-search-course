@@ -26,6 +26,8 @@ jQuery(document).ready(function ($) {
                     </div>
                     <div class="fts-rerank-meta">
                         <span class="fts-rerank-badge">${method}</span>
+                    </div>
+                    <div class="fts-rerank-meta fts-rerank-meta-row">
                         <span class="fts-rerank-badge">FTS: ${relevance}</span>
                         <span class="fts-rerank-badge">Vector: ${similarity}</span>
                     </div>
