@@ -96,7 +96,7 @@ class FTS_Manager {
                                     <label for="search-query"><?php echo esc_html__('Search Query', 'fts-manager'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="text" id="search-query" name="search_query" class="large-text" value="Smart" required>
+                                    <input type="text" id="search-query" name="search_query" class="large-text" value="SEO" required>
                                 </td>
                             </tr>
                             <tr>
@@ -114,18 +114,8 @@ class FTS_Manager {
                                         <strong>Boolean:</strong> Use operators: +required -excluded "phrase" *wildcard<br>
                                         +wireless -smart<br>
                                         >budget means optional but boost relevance<br>
-                                        <strong>Examples:</strong><br>
-
-+camera 4K
-+(speaker audio) -bluetooth
-+"noise cancelling"
-port*
-+audio >wireless -smart
-+desk +(standing adjustable)
-+camera -smart -security -home
-+"action camera" +waterproof
->premium <br>
-                                        <strong>Expansion:</strong> Automatically finds related terms
+                            
+                                        <strong>Expansion:</strong> Automatically finds related terms - SEO for example with Natural is very strict and only matches "SEO", but with expansion it also finds "search engine optimization", "SEO tools", "SEO plugin", etc.
                                     </p>
                                 </td>
                             </tr>
