@@ -176,13 +176,13 @@
     color: #333;
 }
 
-.fts-rerank-result {
+.fts-fulltext-result {
     margin-top: 25px;
     border-left: 4px solid #6a1b9a;
     background: #f5f3ff;
 }
 
-.fts-rerank-help {
+.fts-fulltext-help {
     font-size: 12px;
     color: #555;
     margin-bottom: 16px;
@@ -196,13 +196,13 @@
     font-family: monospace;
 }
 
-.fts-rerank-grid {
+.fts-fulltext-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
 }
 
-.fts-rerank-card {
+.fts-fulltext-card {
     background: #fff;
     border-radius: 10px;
     padding: 16px;
@@ -210,20 +210,20 @@
     box-shadow: 0 4px 10px rgba(17, 24, 39, 0.06);
 }
 
-.fts-rerank-header {
+.fts-fulltext-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 8px;
 }
 
-.fts-rerank-header h4 {
+.fts-fulltext-header h4 {
     font-size: 15px;
     margin: 0;
     color: #1f2937;
 }
 
-.fts-rerank-position {
+.fts-fulltext-position {
     background: #ede9fe;
     color: #6d28d9;
     border-radius: 999px;
@@ -232,18 +232,18 @@
     font-weight: 700;
 }
 
-.fts-rerank-meta {
+.fts-fulltext-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin: 10px 0 12px;
 }
 
-.fts-rerank-meta-row {
+.fts-fulltext-meta-row {
     margin-top: 0;
 }
 
-.fts-rerank-badge {
+.fts-fulltext-badge {
     background: #f3f4f6;
     color: #111827;
     border-radius: 999px;
@@ -252,14 +252,14 @@
     font-weight: 600;
 }
 
-.fts-rerank-excerpt {
+.fts-fulltext-excerpt {
     font-size: 13px;
     color: #374151;
     line-height: 1.5;
     margin-bottom: 12px;
 }
 
-.fts-rerank-link {
+.fts-fulltext-link {
     display: inline-block;
     color: #2563eb;
     font-size: 12px;
@@ -267,11 +267,11 @@
     text-decoration: none;
 }
 
-.fts-rerank-link:hover {
+.fts-fulltext-link:hover {
     text-decoration: underline;
 }
 
-.fts-rerank-empty {
+.fts-fulltext-empty {
     font-size: 13px;
     color: #6b7280;
     margin: 0;
@@ -284,7 +284,7 @@
         margin: 15px;
     }
 
-    .fts-rerank-grid {
+    .fts-fulltext-grid {
         grid-template-columns: 1fr;
     }
 }

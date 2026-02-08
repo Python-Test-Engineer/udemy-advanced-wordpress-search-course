@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: ✅ 33 WP Search Form With Reranking
+ * Plugin Name: ✅ 33 WP Full-Text Search Form
  * Plugin URI: https://example.com
- * Description: Advanced search form that generates encoded FTS query strings and shows reranked results.
+ * Description: Advanced search form that generates encoded FTS query strings and shows full-text results.
  * Version: 1.0.0
  * Author: Craig West
  * Author URI: https://example.com
@@ -40,7 +40,7 @@ class FTS_Query_Builder_Reranking {
     public function add_admin_menu() {
         add_menu_page(
             'FTS Query Builder',           // Page title
-            '33 SEARCH + RERANK',                   // Menu title
+            '33 FTS SEARCH',                   // Menu title
             'manage_options',            
             'fts-query-builder-reranking',            // Menu slug
             array($this, 'render_admin_page'), // Callback function
@@ -72,8 +72,8 @@ class FTS_Query_Builder_Reranking {
     public function render_admin_page() {
         ?>
         <div class="wrap">
-            <h1>FTS Query Builder + Reranking</h1>
-            <p>Generate advanced search queries with operators and review the reranked output.</p>
+            <h1>FTS Query Builder + Full-Text Search</h1>
+            <p>Generate advanced search queries with operators and review the full-text output.</p>
             
             <style>
                 .fts-admin-container {
@@ -283,7 +283,7 @@ class FTS_Query_Builder_Reranking {
                         <strong>The Solution:</strong> We use <code>%2B</code> for the literal + character.<br><br>
                         <strong>Example:</strong><br>
                         • Search for: <code>+tutorial -premium develop*</code><br>
-                        • URL becomes: <code>/wp-json/search/v1/hybrid-search?query=%2Btutorial%20-premium%20develop*</code><br>
+                        • URL becomes: <code>/wp-json/search/v1/search?query=%2Btutorial%20-premium%20develop*</code><br>
                         • Backend receives: <code>+tutorial -premium develop*</code> ✓
                     </p>
                 </div>
@@ -291,9 +291,9 @@ class FTS_Query_Builder_Reranking {
                 <div class="fts-admin-info-box" style="background: #f3e5f5; border-left-color: #9c27b0;">
                     <h3>API Endpoint Information:</h3>
                     <p>
-                        <strong>Custom Hybrid Search Endpoint:</strong><br>
-                        <code><?php echo get_site_url(); ?>/wp-json/search/v1/hybrid-search?query=</code><br><br>
-                        This plugin automatically uses your site's domain with the hybrid search endpoint.<br>
+                        <strong>Full-Text Search Endpoint:</strong><br>
+                        <code><?php echo get_site_url(); ?>/wp-json/search/v1/search?query=</code><br><br>
+                        This plugin automatically uses your site's domain with the full-text search endpoint.<br>
                         The generated URL will work with your current WordPress installation.
                     </p>
                 </div>
@@ -315,38 +315,37 @@ class FTS_Query_Builder_Reranking {
                     </div>
                 </div>
 
-                <div id="fts-admin-rerank-result" class="fts-admin-result" style="border-left-color:#6a1b9a; background:#f5f3ff;">
-                    <h3>Reranked Results (Final Set)</h3>
-                    <p style="font-size:12px;color:#555;margin-bottom:12px;">This output is fetched from <code>/wp-json/reranker/v1/reranked</code> using the generated query.</p>
-                    <div id="fts-admin-rerank-results" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
+                <div id="fts-admin-fulltext-result" class="fts-admin-result" style="border-left-color:#6a1b9a; background:#f5f3ff;">
+                    <h3>Full-Text Results (Highest Score First)</h3>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">This output is fetched from <code>/wp-json/search/v1/search</code> using the generated query.</p>
+                    <div id="fts-admin-fulltext-results" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
                 </div>
 
                 <div id="fts-admin-sql-result" class="fts-admin-result" style="border-left-color:#0ea5e9; background:#ecfeff;">
                     <h3>SQL Used (FTS)</h3>
-                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Shows the SQL used for the full-text lookup ("none" for vector-only results).</p>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Shows the SQL used for the full-text lookup.</p>
                     <pre id="fts-admin-sql-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
                 </div>
 
                 <div id="fts-admin-json-result" class="fts-admin-result" style="border-left-color:#10b981; background:#ecfdf5;">
                     <h3>Live JSON Response</h3>
-                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Actual response returned by <code>/wp-json/reranker/v1/reranked</code>.</p>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Actual response returned by <code>/wp-json/search/v1/search</code>.</p>
                     <pre id="fts-admin-json-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
                 </div>
 
                 <div class="fts-admin-info-box" style="background: #fff3e0; border-left-color: #ff9800;">
-                    <h3>Reranked Output (Final Result Set)</h3>
-                    <p>The reranker endpoint combines Fulltext + Vector results, normalizes scores, and returns a final list ordered by the combined score.</p>
-                    <p><strong>Endpoint:</strong> <code><?php echo esc_html(get_site_url()); ?>/wp-json/reranker/v1/reranked?query=YOUR_QUERY</code></p>
+                    <h3>Full-Text Output (Ranked by Score)</h3>
+                    <p>The full-text endpoint uses the MySQL full-text index and returns results ordered by relevance score.</p>
+                    <p><strong>Endpoint:</strong> <code><?php echo esc_html(get_site_url()); ?>/wp-json/search/v1/search?query=YOUR_QUERY</code></p>
                     <p><strong>Output Fields:</strong></p>
                     <ul>
                         <li><strong>post_id</strong> - WordPress post ID</li>
                         <li><strong>post_title</strong> - Title of the result</li>
-                        <li><strong>excerpt</strong> - Summary text used in cards</li>
+                        <li><strong>content</strong> - Post content preview</li>
                         <li><strong>relevance_score</strong> - Fulltext score (FTS)</li>
-                        <li><strong>similarity_score</strong> - Vector similarity score</li>
-                        <li><strong>method</strong> - FTS, VECTOR, or FTS+VECTOR</li>
-                        <li><strong>position</strong> - Final ordering after reranking</li>
-                        <li><strong>sql</strong> - SQL used for the FTS lookup ("none" for vector-only results)</li>
+                        <li><strong>categories</strong> - Category list</li>
+                        <li><strong>tags</strong> - Tag list</li>
+                        <li><strong>sql</strong> - SQL used for the lookup</li>
                     </ul>
                     <p><strong>Response Shape (Live):</strong></p>
                     <pre id="fts-admin-response-shape-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
@@ -354,22 +353,20 @@ class FTS_Query_Builder_Reranking {
 
             <script>
             jQuery(document).ready(function($) {
-                function renderRerankAdmin(results) {
-                    const $container = $('#fts-admin-rerank-results');
+                function renderFulltextAdmin(results) {
+                    const $container = $('#fts-admin-fulltext-results');
                     $container.empty();
 
                     if (!Array.isArray(results) || results.length === 0) {
-                        $container.append('<p style="font-size:13px;color:#6b7280;margin:0;">No reranked results returned.</p>');
+                        $container.append('<p style="font-size:13px;color:#6b7280;margin:0;">No full-text results returned.</p>');
                         return;
                     }
 
-                    results.forEach(function(item) {
+                    results.forEach(function(item, index) {
                         const title = item.post_title || 'Untitled';
-                        const excerpt = item.excerpt || item.content || item.post_content || '';
-                        const method = item.method || 'UNKNOWN';
+                        const excerpt = item.content || item.post_content || '';
                         const relevance = typeof item.relevance_score !== 'undefined' ? Number(item.relevance_score).toFixed(4) : '0.0000';
-                        const similarity = typeof item.similarity_score !== 'undefined' ? Number(item.similarity_score).toFixed(4) : '0.0000';
-                        const position = item.position || '-';
+                        const position = typeof item.position !== 'undefined' ? item.position : (index + 1);
                         const link = item.url || item.permalink || '';
 
                         const card = `
@@ -378,12 +375,8 @@ class FTS_Query_Builder_Reranking {
                                     <h4 style="margin:0;font-size:15px;color:#1f2937;">${title}</h4>
                                     <span style="background:#ede9fe;color:#6d28d9;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;">#${position}</span>
                                 </div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px;">
-                                    <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">${method}</span>
-                                </div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;">
                                     <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">FTS: ${relevance}</span>
-                                    <span style="background:#f3f4f6;color:#111827;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;">Vector: ${similarity}</span>
                                 </div>
                                 <p style="font-size:13px;color:#374151;line-height:1.5;margin-bottom:12px;">${excerpt}</p>
                                 ${link ? `<a href="${link}" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none;">View Result</a>` : ''}
@@ -393,16 +386,7 @@ class FTS_Query_Builder_Reranking {
                     });
                 }
 
-                function fetchRerankAdmin(query) {
-                    const endpoint = '<?php echo esc_js(rest_url('reranker/v1/reranked')); ?>';
-                    const url = `${endpoint}?query=${encodeURIComponent(query)}`;
-                    return $.ajax({
-                        url: url,
-                        type: 'GET'
-                    });
-                }
-
-                function fetchFulltextSql(query) {
+                function fetchFulltextAdmin(query) {
                     const endpoint = '<?php echo esc_js(rest_url('search/v1/search')); ?>';
                     const url = `${endpoint}?query=${encodeURIComponent(query)}&limit=3`;
                     return $.ajax({
@@ -453,10 +437,10 @@ class FTS_Query_Builder_Reranking {
                 $('#fts-clear-form').on('click', function() {
                     $('#fts-admin-search-form')[0].reset();
                     $('#fts-admin-result').removeClass('show');
-                    $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-fulltext-result').removeClass('show');
                     $('#fts-admin-sql-result').removeClass('show');
                     $('#fts-admin-json-result').removeClass('show');
-                    $('#fts-admin-rerank-results').empty();
+                    $('#fts-admin-fulltext-results').empty();
                     $('#fts-admin-sql-output').text('');
                     $('#fts-admin-json-output').text('');
                     $('#fts-admin-response-shape-output').text('');
@@ -480,10 +464,10 @@ class FTS_Query_Builder_Reranking {
                         return;
                     }
                     
-                    $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-fulltext-result').removeClass('show');
                     $('#fts-admin-sql-result').removeClass('show');
                     $('#fts-admin-json-result').removeClass('show');
-                    $('#fts-admin-rerank-results').empty();
+                    $('#fts-admin-fulltext-results').empty();
                     $('#fts-admin-sql-output').text('');
                     $('#fts-admin-json-output').text('');
                     $('#fts-admin-response-shape-output').text('');
@@ -512,39 +496,28 @@ class FTS_Query_Builder_Reranking {
 
                                 const query = response.data.query || basicQuery;
                                 if (query) {
-                                    fetchRerankAdmin(query)
-                                        .done(function(rerankResponse) {
-                                            if (rerankResponse && rerankResponse.success) {
-                                                renderRerankAdmin(rerankResponse.results || []);
-                                                const formattedSql = formatSql(rerankResponse.sql);
-                                                if (formattedSql === 'none') {
-                                                    fetchFulltextSql(query)
-                                                        .done(function(fulltextResponse) {
-                                                            const fallbackSql = formatSql(fulltextResponse && fulltextResponse.sql ? fulltextResponse.sql : '');
-                                                            $('#fts-admin-sql-output').text(fallbackSql);
-                                                        })
-                                                        .fail(function() {
-                                                            $('#fts-admin-sql-output').text('none');
-                                                        });
-                                                } else {
-                                                    $('#fts-admin-sql-output').text(formattedSql);
-                                                }
-                                                $('#fts-admin-json-output').text(JSON.stringify(rerankResponse, null, 2));
-                                                $('#fts-admin-response-shape-output').text(JSON.stringify(rerankResponse, null, 2));
+                                    fetchFulltextAdmin(query)
+                                        .done(function(fulltextResponse) {
+                                            if (fulltextResponse && fulltextResponse.success) {
+                                                renderFulltextAdmin(fulltextResponse.results || []);
+                                                const formattedSql = formatSql(fulltextResponse.sql);
+                                                $('#fts-admin-sql-output').text(formattedSql);
+                                                $('#fts-admin-json-output').text(JSON.stringify(fulltextResponse, null, 2));
+                                                $('#fts-admin-response-shape-output').text(JSON.stringify(fulltextResponse, null, 2));
                                             } else {
-                                                renderRerankAdmin([]);
+                                                renderFulltextAdmin([]);
                                                 $('#fts-admin-sql-output').text('none');
-                                                $('#fts-admin-json-output').text(JSON.stringify(rerankResponse || {}, null, 2));
-                                                $('#fts-admin-response-shape-output').text(JSON.stringify(rerankResponse || {}, null, 2));
+                                                $('#fts-admin-json-output').text(JSON.stringify(fulltextResponse || {}, null, 2));
+                                                $('#fts-admin-response-shape-output').text(JSON.stringify(fulltextResponse || {}, null, 2));
                                             }
-                                            $('#fts-admin-rerank-result').addClass('show');
+                                            $('#fts-admin-fulltext-result').addClass('show');
                                             $('#fts-admin-sql-result').addClass('show');
                                             $('#fts-admin-json-result').addClass('show');
                                         })
                                         .fail(function() {
-                                            renderRerankAdmin([]);
+                                            renderFulltextAdmin([]);
                                             $('#fts-admin-sql-output').text('none');
-                                            $('#fts-admin-rerank-result').addClass('show');
+                                            $('#fts-admin-fulltext-result').addClass('show');
                                             $('#fts-admin-sql-result').addClass('show');
                                             $('#fts-admin-json-output').text('');
                                             $('#fts-admin-json-result').addClass('show');
@@ -616,7 +589,7 @@ class FTS_Query_Builder_Reranking {
         wp_localize_script('fts-query-builder-script', 'ftsAjax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('fts_query_nonce'),
-            'rerankEndpoint' => rest_url('reranker/v1/reranked'),
+            'fulltextEndpoint' => rest_url('search/v1/search'),
             'siteUrl' => get_site_url()
         ));
     }
@@ -723,8 +696,8 @@ class FTS_Query_Builder_Reranking {
         // Get current site URL
         $site_url = get_site_url();
         
-        // Build the custom hybrid search API URL
-        $api_url = $site_url . '/wp-json/search/v1/hybrid-search?query=' . $encoded;
+        // Build the custom full-text search API URL
+        $api_url = $site_url . '/wp-json/search/v1/search?query=' . $encoded;
         
         wp_send_json_success(array(
             'query' => $query,
@@ -829,10 +802,10 @@ class FTS_Query_Builder_Reranking {
                 </div>
             </div>
 
-            <div id="fts-rerank-result" class="fts-result fts-rerank-result" style="display: none;">
-                <h3>Reranked Results (Final Set)</h3>
-                <p class="fts-rerank-help">Results are fetched from <code class="fts-inline-code">/wp-json/reranker/v1/reranked</code> using your query.</p>
-                <div id="fts-rerank-results" class="fts-rerank-grid"></div>
+            <div id="fts-fulltext-result" class="fts-result fts-fulltext-result" style="display: none;">
+                <h3>Full-Text Results (Highest Score First)</h3>
+                <p class="fts-fulltext-help">Results are fetched from <code class="fts-inline-code">/wp-json/search/v1/search</code> using your query.</p>
+                <div id="fts-fulltext-results" class="fts-fulltext-grid"></div>
             </div>
         </div>
         <?php

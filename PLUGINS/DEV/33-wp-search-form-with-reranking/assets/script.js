@@ -1,46 +1,40 @@
 jQuery(document).ready(function ($) {
 
-    function renderRerankedResults(results) {
-        const $container = $('#fts-rerank-results');
+    function renderFulltextResults(results) {
+        const $container = $('#fts-fulltext-results');
         $container.empty();
 
         if (!Array.isArray(results) || results.length === 0) {
-            $container.append('<p class="fts-rerank-empty">No reranked results returned.</p>');
+            $container.append('<p class="fts-fulltext-empty">No full-text results returned.</p>');
             return;
         }
 
-        results.forEach(function (item) {
+        results.forEach(function (item, index) {
             const title = item.post_title || 'Untitled';
-            const excerpt = item.excerpt || item.content || item.post_content || '';
-            const method = item.method || 'UNKNOWN';
+            const excerpt = item.content || item.post_content || '';
             const relevance = typeof item.relevance_score !== 'undefined' ? Number(item.relevance_score).toFixed(4) : '0.0000';
-            const similarity = typeof item.similarity_score !== 'undefined' ? Number(item.similarity_score).toFixed(4) : '0.0000';
-            const position = item.position || '-';
+            const position = typeof item.position !== 'undefined' ? item.position : (index + 1);
             const link = item.url || item.permalink || '';
 
             const card = `
-                <div class="fts-rerank-card">
-                    <div class="fts-rerank-header">
+                <div class="fts-fulltext-card">
+                    <div class="fts-fulltext-header">
                         <h4>${title}</h4>
-                        <span class="fts-rerank-position">#${position}</span>
+                        <span class="fts-fulltext-position">#${position}</span>
                     </div>
-                    <div class="fts-rerank-meta">
-                        <span class="fts-rerank-badge">${method}</span>
+                    <div class="fts-fulltext-meta fts-fulltext-meta-row">
+                        <span class="fts-fulltext-badge">FTS: ${relevance}</span>
                     </div>
-                    <div class="fts-rerank-meta fts-rerank-meta-row">
-                        <span class="fts-rerank-badge">FTS: ${relevance}</span>
-                        <span class="fts-rerank-badge">Vector: ${similarity}</span>
-                    </div>
-                    <p class="fts-rerank-excerpt">${excerpt}</p>
-                    ${link ? `<a class="fts-rerank-link" href="${link}" target="_blank" rel="noopener">View Result</a>` : ''}
+                    <p class="fts-fulltext-excerpt">${excerpt}</p>
+                    ${link ? `<a class="fts-fulltext-link" href="${link}" target="_blank" rel="noopener">View Result</a>` : ''}
                 </div>
             `;
             $container.append(card);
         });
     }
 
-    function fetchRerankResults(query) {
-        const endpoint = ftsAjax.rerankEndpoint || `${ftsAjax.siteUrl}/wp-json/reranker/v1/reranked`;
+    function fetchFulltextResults(query) {
+        const endpoint = ftsAjax.fulltextEndpoint || `${ftsAjax.siteUrl}/wp-json/search/v1/search`;
         const url = `${endpoint}?query=${encodeURIComponent(query)}`;
 
         return $.ajax({
@@ -69,8 +63,8 @@ jQuery(document).ready(function ($) {
         }
 
         // Send AJAX request
-        $('#fts-rerank-result').hide();
-        $('#fts-rerank-results').empty();
+        $('#fts-fulltext-result').hide();
+        $('#fts-fulltext-results').empty();
 
         $.ajax({
             url: ftsAjax.ajaxurl,
@@ -97,18 +91,18 @@ jQuery(document).ready(function ($) {
 
                     const query = response.data.query || response.data.decoded || response.data.raw || basicQuery;
                     if (query) {
-                        fetchRerankResults(query)
-                            .done(function (rerankResponse) {
-                                if (rerankResponse && rerankResponse.success) {
-                                    renderRerankedResults(rerankResponse.results || []);
+                        fetchFulltextResults(query)
+                            .done(function (fulltextResponse) {
+                                if (fulltextResponse && fulltextResponse.success) {
+                                    renderFulltextResults(fulltextResponse.results || []);
                                 } else {
-                                    renderRerankedResults([]);
+                                    renderFulltextResults([]);
                                 }
-                                $('#fts-rerank-result').slideDown();
+                                $('#fts-fulltext-result').slideDown();
                             })
                             .fail(function () {
-                                renderRerankedResults([]);
-                                $('#fts-rerank-result').slideDown();
+                                renderFulltextResults([]);
+                                $('#fts-fulltext-result').slideDown();
                             });
                     }
 

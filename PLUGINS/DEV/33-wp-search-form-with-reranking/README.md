@@ -1,6 +1,6 @@
-# WP Search Form With Reranking - WordPress Plugin
+# WP Full-Text Search Form - WordPress Plugin
 
-A WordPress plugin that provides an advanced search form to generate encoded FTS (Full Text Search) query strings with operators and displays the reranked result set.
+A WordPress plugin that provides an advanced search form to generate encoded FTS (Full Text Search) query strings with operators and displays the full-text result set ordered by score.
 
 ## Features
 
@@ -18,19 +18,19 @@ A WordPress plugin that provides an advanced search form to generate encoded FTS
 - **Copy to Clipboard**: Easy copying of generated query strings
 - **AJAX-powered**: Smooth, no-reload experience
 - **Frontend Shortcode**: Display form on any page or post
-- **Reranked Output Cards**: Shows the final reranked results list from the reranker endpoint
+- **Full-Text Output Cards**: Shows the full-text results list from the search endpoint
 
 ## Installation
 
-1. Upload the `33-wp-search-form-with-reranking` folder to `/wp-content/plugins/`
+1. Upload the `33-wp-search-form-with-reranking` folder to `/wp-content/plugins/` (folder name retained for compatibility)
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Access via admin menu "33 SEARCH + RERANK" (requires user level 4 or higher)
-4. Or use the shortcode `[fts_search_form_reranking]` in any page or post
+3. Access via admin menu "33 FTS SEARCH" (requires user level 4 or higher)
+4. Or use the shortcode `[fts_search_form_reranking]` in any page or post (shortcode kept for compatibility)
 
 ## Usage
 
 ### Admin Menu
-After activation, you'll see "33 SEARCH + RERANK" in your WordPress admin menu (with a search icon). Click it to access the query builder interface.
+After activation, you'll see "33 FTS SEARCH" in your WordPress admin menu (with a search icon). Click it to access the query builder interface.
 
 **Minimum User Level:** 4.9 (level_4 capability)
 
@@ -58,9 +58,9 @@ After activation, you'll see "33 SEARCH + RERANK" in your WordPress admin menu (
    /wp-json/wp/v2/posts?search=wordpress%20plugin%20%2Btutorial%20-premium%20develop*%20%22best%20practices%22%20%28guide%7Chelp%29
    ```
 
-4. **Reranked output is fetched from:**
+4. **Full-text output is fetched from:**
    ```
-   /wp-json/reranker/v1/reranked?query=wordpress%20plugin%20%2Btutorial%20-premium
+   /wp-json/search/v1/search?query=wordpress%20plugin%20%2Btutorial%20-premium
    ```
 
 ## Operator Reference
@@ -121,7 +121,7 @@ The plugin uses `rawurlencode()` instead of `urlencode()` because:
 ## File Structure
 
 ```
-33-wp-search-form-with-reranking/
+33-wp-search-form-with-reranking/ (folder name retained for compatibility)
 ├── 33-query-form-reranking.php   (Main plugin file)
 ├── assets/
 │   ├── style.css            (Styling)
@@ -131,34 +131,34 @@ The plugin uses `rawurlencode()` instead of `urlencode()` because:
 
 ## WordPress API Usage
 
-The plugin automatically generates URLs using your site's custom hybrid search endpoint:
+The plugin automatically generates URLs using your site's full-text search endpoint:
 
 ```php
 // The plugin uses get_site_url() to get the current domain
 $site_url = get_site_url();
 $encoded_query = 'pillow%20%2Bmemory%20%2Bfoam';
-$url = $site_url . '/wp-json/search/v1/hybrid-search?query=' . $encoded_query;
+$url = $site_url . '/wp-json/search/v1/search?query=' . $encoded_query;
 
 // Example result:
-// https://yoursite.com/wp-json/search/v1/hybrid-search?query=pillow%20%2Bmemory%20%2Bfoam
+// https://yoursite.com/wp-json/search/v1/search?query=pillow%20%2Bmemory%20%2Bfoam
 ```
 
-### Reranked Result Set
+### Full-Text Result Set
 
-The form also calls the reranker endpoint to show the final ordered list:
+The form calls the full-text endpoint to show the ordered list:
 
 ```
-/wp-json/reranker/v1/reranked?query=[raw query text]
+/wp-json/search/v1/search?query=[raw query text]
 ```
 
-The response includes `method`, `position`, and score fields used to build the reranked cards.
+The response includes `relevance_score` and result fields used to build the cards.
 
 ### Making API Calls
 
 ```php
-// Once you have the encoded query, use it with the hybrid search API
+// Once you have the encoded query, use it with the full-text search API
 $encoded_query = 'pillow%20%2Bmemory%20%2Bfoam%20-premium';
-$url = get_site_url() . '/wp-json/search/v1/hybrid-search?query=' . $encoded_query;
+$url = get_site_url() . '/wp-json/search/v1/search?query=' . $encoded_query;
 
 $response = wp_remote_get($url);
 if (!is_wp_error($response)) {
@@ -170,9 +170,9 @@ if (!is_wp_error($response)) {
 
 ### Endpoint Format
 
-The plugin uses the custom hybrid search endpoint:
+The plugin uses the custom full-text search endpoint:
 ```
-/wp-json/search/v1/hybrid-search?query=[encoded_query]
+/wp-json/search/v1/search?query=[encoded_query]
 ```
 
 This endpoint is designed to work with your Full Text Search implementation and supports all the boolean operators provided by the plugin.
