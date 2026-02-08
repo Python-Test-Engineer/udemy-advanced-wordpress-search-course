@@ -222,18 +222,18 @@ class FTS_Query_Builder_Reranking {
 
                     <div class="fts-admin-form-group">
                         <label for="fts-admin-less-than">
-                            Less Than <span class="fts-admin-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
+                            Reduce Terms <span class="fts-admin-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
                         </label>
-                        <input type="text" id="fts-admin-less-than" name="less_than" placeholder="e.g., field:100">
-                        <span class="fts-admin-help-text">Less than operator (e.g., price&lt;100)</span>
+                        <input type="text" id="fts-admin-less-than" name="less_than" placeholder="e.g., outdated generic">
+                        <span class="fts-admin-help-text">Reduce importance (becomes &lt;outdated &lt;generic)</span>
                     </div>
 
                     <div class="fts-admin-form-group">
                         <label for="fts-admin-greater-than">
-                            Greater Than <span class="fts-admin-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
+                            Boost Terms <span class="fts-admin-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
                         </label>
-                        <input type="text" id="fts-admin-greater-than" name="greater_than" placeholder="e.g., field:100">
-                        <span class="fts-admin-help-text">Greater than operator (e.g., price&gt;100)</span>
+                        <input type="text" id="fts-admin-greater-than" name="greater_than" placeholder="e.g., featured premium">
+                        <span class="fts-admin-help-text">Boost importance (becomes &gt;featured &gt;premium)</span>
                     </div>
 
                     <div class="fts-admin-form-group">
@@ -265,14 +265,14 @@ class FTS_Query_Builder_Reranking {
                         <strong>- (Must NOT Contain):</strong> <code>-premium</code> - Result must NOT include "premium"<br>
                         <strong>* (Wildcard):</strong> <code>develop*</code> - Matches develop, developer, development, etc.<br>
                         <strong>"..." (Exact Phrase):</strong> <code>"wordpress plugin"</code> - Exact phrase match<br>
-                        <strong>&lt; (Less Than):</strong> <code>price&lt;100</code> - Numeric less than comparison<br>
-                        <strong>&gt; (Greater Than):</strong> <code>price&gt;100</code> - Numeric greater than comparison<br>
+                        <strong>&lt; (Reduce Terms):</strong> <code>&lt;outdated</code> - Reduce term importance<br>
+                        <strong>&gt; (Boost Terms):</strong> <code>&gt;featured</code> - Boost term importance<br>
                         <strong>| (OR):</strong> <code>(tutorial|guide)</code> - Match either tutorial OR guide<br>
                         <strong>() (Grouping):</strong> <code>(+wordpress +(plugin|theme))</code> - Group complex queries<br>
                     </p>
                     <p style="margin-top: 10px;">
                         <strong>Example Complex Query:</strong><br>
-                        <code>+wordpress +(plugin|theme) -premium "best practices" develop* price&lt;50</code>
+                        <code>+wordpress +(plugin|theme) -premium "best practices" develop* &gt;featured &lt;outdated</code>
                     </p>
                 </div>
 
@@ -414,8 +414,8 @@ class FTS_Query_Builder_Reranking {
                     $('#fts-admin-must-not-contain').val('premium expensive luxury');
                     $('#fts-admin-wildcard').val('adjust');
                     $('#fts-admin-phrase').val('machine washable');
-                    $('#fts-admin-less-than').val('price<60');
-                    $('#fts-admin-greater-than').val('');
+                    $('#fts-admin-less-than').val('generic');
+                    $('#fts-admin-greater-than').val('cooling');
                     $('#fts-admin-or-terms').val('cooling breathable');
                     $('#fts-admin-parentheses').val('');
                     
@@ -608,14 +608,20 @@ class FTS_Query_Builder_Reranking {
             $parts[] = '"' . trim($phrase) . '"';
         }
         
-        // Add less than operator
+        // Add reduce terms (< prefix)
         if (!empty($less_than)) {
-            $parts[] = '<' . trim($less_than);
+            $terms = preg_split('/\s+/', trim($less_than), -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($terms as $term) {
+                $parts[] = '<' . $term;
+            }
         }
         
-        // Add greater than operator
+        // Add boost terms (> prefix)
         if (!empty($greater_than)) {
-            $parts[] = '>' . trim($greater_than);
+            $terms = preg_split('/\s+/', trim($greater_than), -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($terms as $term) {
+                $parts[] = '>' . $term;
+            }
         }
         
         // Add OR terms with | separator
@@ -723,18 +729,18 @@ class FTS_Query_Builder_Reranking {
 
                 <div class="fts-form-group">
                     <label for="fts-less-than">
-                        Less Than <span class="fts-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
+                        Reduce Terms <span class="fts-operator-badge" style="background: #fff9c4; color: #f57f17;">&lt;</span>
                     </label>
-                    <input type="text" id="fts-less-than" name="less_than" placeholder="e.g., field:100">
-                    <span class="fts-help-text">Less than operator (e.g., price&lt;100)</span>
+                    <input type="text" id="fts-less-than" name="less_than" placeholder="e.g., outdated generic">
+                    <span class="fts-help-text">Reduce importance (becomes &lt;outdated &lt;generic)</span>
                 </div>
 
                 <div class="fts-form-group">
                     <label for="fts-greater-than">
-                        Greater Than <span class="fts-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
+                        Boost Terms <span class="fts-operator-badge" style="background: #ffe0b2; color: #e65100;">&gt;</span>
                     </label>
-                    <input type="text" id="fts-greater-than" name="greater_than" placeholder="e.g., field:100">
-                    <span class="fts-help-text">Greater than operator (e.g., price&gt;100)</span>
+                    <input type="text" id="fts-greater-than" name="greater_than" placeholder="e.g., featured premium">
+                    <span class="fts-help-text">Boost importance (becomes &gt;featured &gt;premium)</span>
                 </div>
 
                 <div class="fts-form-group">
