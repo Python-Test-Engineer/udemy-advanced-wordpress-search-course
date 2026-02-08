@@ -45,7 +45,7 @@ class WP_REST_RAG_Endpoints {
                     'required' => true,
                     'type' => 'string',
                     'description' => 'Search query string',
-                    'sanitize_callback' => 'sanitize_text_field'
+                    'sanitize_callback' => array($this, 'sanitize_boolean_query')
                 ),
                 'limit' => array(
                     'required' => false,
@@ -67,7 +67,7 @@ class WP_REST_RAG_Endpoints {
                     'required' => true,
                     'type' => 'string',
                     'description' => 'Search query string',
-                    'sanitize_callback' => 'sanitize_text_field'
+                    'sanitize_callback' => array($this, 'sanitize_boolean_query')
                 ),
                 'limit' => array(
                     'required' => false,
@@ -89,7 +89,7 @@ class WP_REST_RAG_Endpoints {
                     'required' => true,
                     'type' => 'string',
                     'description' => 'Search query string',
-                    'sanitize_callback' => 'sanitize_text_field'
+                    'sanitize_callback' => array($this, 'sanitize_boolean_query')
                 ),
                 'limit' => array(
                     'required' => false,
@@ -115,6 +115,24 @@ class WP_REST_RAG_Endpoints {
             'dashicons-search',
             4.5
         );
+    }
+
+    /**
+     * Sanitize boolean full-text queries while preserving operators.
+     */
+    public function sanitize_boolean_query($value) {
+        $value = is_string($value) ? wp_unslash($value) : '';
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $allowed_pattern = '/[^\p{L}\p{N}\s\+\-\*\"\(\)\|<>]/u';
+        $value = preg_replace($allowed_pattern, ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        return trim($value);
     }
 
     /**
@@ -458,6 +476,7 @@ class WP_REST_RAG_Endpoints {
         // Perform both searches
         $fulltext_results = array();
         $vector_results = array();
+        $fulltext_sql = 'none';
 
         // Try full-text search first
         $fulltext_request = new WP_REST_Request('GET', RAG_PLUGIN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
@@ -467,6 +486,9 @@ class WP_REST_RAG_Endpoints {
 
         if (!is_wp_error($fulltext_response) && isset($fulltext_response['results'])) {
             $fulltext_results = $fulltext_response['results'];
+            if (!empty($fulltext_response['sql'])) {
+                $fulltext_sql = $fulltext_response['sql'];
+            }
         }
 
         // Try vector search
@@ -507,6 +529,7 @@ class WP_REST_RAG_Endpoints {
                 'success' => true,
                 'query' => $query,
                 'method' => 'hybrid_search',
+                'sql' => $fulltext_sql,
                 'results' => array(),
                 'count' => 0,
                 'fulltext_count' => count($fulltext_results),
@@ -518,6 +541,7 @@ class WP_REST_RAG_Endpoints {
             'success' => true,
             'query' => $query,
             'method' => 'hybrid_search',
+            'sql' => $fulltext_sql,
             'results' => $combined_results,
             'count' => count($combined_results),
             'fulltext_count' => count($fulltext_results),
@@ -643,10 +667,10 @@ class WP_REST_RAG_Endpoints {
                 categories,
                 tags,
                 MATCH(post_title, post_content)
-                AGAINST (%s IN NATURAL LANGUAGE MODE) as relevance_score
+                AGAINST (%s IN BOOLEAN MODE) as relevance_score
             FROM " . RAG_TABLE_NAME . "
             WHERE MATCH(post_title, post_content)
-                AGAINST (%s IN NATURAL LANGUAGE MODE)
+                AGAINST (%s IN BOOLEAN MODE)
             ORDER BY relevance_score DESC
             LIMIT %d",
             $query,

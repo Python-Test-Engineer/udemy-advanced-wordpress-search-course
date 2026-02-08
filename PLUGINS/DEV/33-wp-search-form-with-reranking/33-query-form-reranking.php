@@ -321,6 +321,18 @@ class FTS_Query_Builder_Reranking {
                     <div id="fts-admin-rerank-results" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
                 </div>
 
+                <div id="fts-admin-sql-result" class="fts-admin-result" style="border-left-color:#0ea5e9; background:#ecfeff;">
+                    <h3>SQL Used (FTS)</h3>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Shows the SQL used for the full-text lookup ("none" for vector-only results).</p>
+                    <pre id="fts-admin-sql-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
+                </div>
+
+                <div id="fts-admin-json-result" class="fts-admin-result" style="border-left-color:#10b981; background:#ecfdf5;">
+                    <h3>Live JSON Response</h3>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Actual response returned by <code>/wp-json/reranker/v1/reranked</code>.</p>
+                    <pre id="fts-admin-json-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
+                </div>
+
                 <div class="fts-admin-info-box" style="background: #fff3e0; border-left-color: #ff9800;">
                     <h3>Reranked Output (Final Result Set)</h3>
                     <p>The reranker endpoint combines Fulltext + Vector results, normalizes scores, and returns a final list ordered by the combined score.</p>
@@ -334,27 +346,10 @@ class FTS_Query_Builder_Reranking {
                         <li><strong>similarity_score</strong> - Vector similarity score</li>
                         <li><strong>method</strong> - FTS, VECTOR, or FTS+VECTOR</li>
                         <li><strong>position</strong> - Final ordering after reranking</li>
+                        <li><strong>sql</strong> - SQL used for the FTS lookup ("none" for vector-only results)</li>
                     </ul>
-                    <p><strong>Response Shape:</strong></p>
-                    <pre style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;">
-{
-  "success": true,
-  "query": "foam products",
-  "method": "reranking",
-  "results": [
-    {
-      "post_id": 101,
-      "post_title": "Memory Foam Pillow",
-      "excerpt": "...",
-      "relevance_score": 12.45,
-      "similarity_score": 0.82,
-      "method": "FTS+VECTOR",
-      "position": 1
-    }
-  ],
-  "count": 6
-}
-                    </pre>
+                    <p><strong>Response Shape (Live):</strong></p>
+                    <pre id="fts-admin-response-shape-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
                 </div>
 
             <script>
@@ -407,6 +402,29 @@ class FTS_Query_Builder_Reranking {
                     });
                 }
 
+                function fetchFulltextSql(query) {
+                    const endpoint = '<?php echo esc_js(rest_url('search/v1/search')); ?>';
+                    const url = `${endpoint}?query=${encodeURIComponent(query)}&limit=3`;
+                    return $.ajax({
+                        url: url,
+                        type: 'GET'
+                    });
+                }
+
+                function formatSql(sql) {
+                    if (!sql || typeof sql !== 'string') {
+                        return 'none';
+                    }
+
+                    const cleaned = sql.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                    if (!cleaned.length) {
+                        return 'none';
+                    }
+
+                    return cleaned
+                        .replace(/\s+(SELECT|FROM|WHERE|ORDER BY|LIMIT|INNER JOIN|LEFT JOIN|RIGHT JOIN|JOIN|GROUP BY)\s+/gi, '\n$1 ');
+                }
+
                 // Load example data
                 $('#fts-load-example').on('click', function() {
                     $('#fts-admin-basic-query').val('pillow');
@@ -436,7 +454,12 @@ class FTS_Query_Builder_Reranking {
                     $('#fts-admin-search-form')[0].reset();
                     $('#fts-admin-result').removeClass('show');
                     $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-sql-result').removeClass('show');
+                    $('#fts-admin-json-result').removeClass('show');
                     $('#fts-admin-rerank-results').empty();
+                    $('#fts-admin-sql-output').text('');
+                    $('#fts-admin-json-output').text('');
+                    $('#fts-admin-response-shape-output').text('');
                 });
                 
                 $('#fts-admin-search-form').on('submit', function(e) {
@@ -458,7 +481,12 @@ class FTS_Query_Builder_Reranking {
                     }
                     
                     $('#fts-admin-rerank-result').removeClass('show');
+                    $('#fts-admin-sql-result').removeClass('show');
+                    $('#fts-admin-json-result').removeClass('show');
                     $('#fts-admin-rerank-results').empty();
+                    $('#fts-admin-sql-output').text('');
+                    $('#fts-admin-json-output').text('');
+                    $('#fts-admin-response-shape-output').text('');
 
                     $.ajax({
                         url: ftsAjax.ajaxurl,
@@ -488,14 +516,39 @@ class FTS_Query_Builder_Reranking {
                                         .done(function(rerankResponse) {
                                             if (rerankResponse && rerankResponse.success) {
                                                 renderRerankAdmin(rerankResponse.results || []);
+                                                const formattedSql = formatSql(rerankResponse.sql);
+                                                if (formattedSql === 'none') {
+                                                    fetchFulltextSql(query)
+                                                        .done(function(fulltextResponse) {
+                                                            const fallbackSql = formatSql(fulltextResponse && fulltextResponse.sql ? fulltextResponse.sql : '');
+                                                            $('#fts-admin-sql-output').text(fallbackSql);
+                                                        })
+                                                        .fail(function() {
+                                                            $('#fts-admin-sql-output').text('none');
+                                                        });
+                                                } else {
+                                                    $('#fts-admin-sql-output').text(formattedSql);
+                                                }
+                                                $('#fts-admin-json-output').text(JSON.stringify(rerankResponse, null, 2));
+                                                $('#fts-admin-response-shape-output').text(JSON.stringify(rerankResponse, null, 2));
                                             } else {
                                                 renderRerankAdmin([]);
+                                                $('#fts-admin-sql-output').text('none');
+                                                $('#fts-admin-json-output').text(JSON.stringify(rerankResponse || {}, null, 2));
+                                                $('#fts-admin-response-shape-output').text(JSON.stringify(rerankResponse || {}, null, 2));
                                             }
                                             $('#fts-admin-rerank-result').addClass('show');
+                                            $('#fts-admin-sql-result').addClass('show');
+                                            $('#fts-admin-json-result').addClass('show');
                                         })
                                         .fail(function() {
                                             renderRerankAdmin([]);
+                                            $('#fts-admin-sql-output').text('none');
                                             $('#fts-admin-rerank-result').addClass('show');
+                                            $('#fts-admin-sql-result').addClass('show');
+                                            $('#fts-admin-json-output').text('');
+                                            $('#fts-admin-json-result').addClass('show');
+                                            $('#fts-admin-response-shape-output').text('');
                                         });
                                 }
                                 
@@ -591,7 +644,10 @@ class FTS_Query_Builder_Reranking {
         if (!empty($must_not_contain)) {
             $terms = preg_split('/\s+/', trim($must_not_contain), -1, PREG_SPLIT_NO_EMPTY);
             foreach ($terms as $term) {
-                $parts[] = '-' . $term;
+                $normalized = ltrim($term, '+-');
+                if ($normalized !== '') {
+                    $parts[] = '-' . $normalized;
+                }
             }
         }
         

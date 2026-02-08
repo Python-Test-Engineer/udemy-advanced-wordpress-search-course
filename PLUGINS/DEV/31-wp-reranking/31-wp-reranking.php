@@ -69,10 +69,15 @@ class WP_Reranking_Plugin {
             'has_payload' => !empty($payload)
         ));
 
+        $sql = null;
+
         if (!empty($payload)) {
             // Accept fulltext_search/vector_search wrappers directly.
             $fulltext = isset($payload['fulltext_search']) ? $payload['fulltext_search'] : null;
             $vector = isset($payload['vector_search']) ? $payload['vector_search'] : null;
+            if (!empty($payload['sql'])) {
+                $sql = $payload['sql'];
+            }
 
             // Accept raw arrays from alternate naming conventions.
             if (!$fulltext && isset($payload['fts_results']) && is_array($payload['fts_results'])) {
@@ -122,6 +127,9 @@ class WP_Reranking_Plugin {
 
             $fulltext = $search_payloads['fulltext'];
             $vector = $search_payloads['vector'];
+            if (isset($search_payloads['sql'])) {
+                $sql = $search_payloads['sql'];
+            }
         }
 
         $this->log_debug('Input payloads ready.', array(
@@ -131,6 +139,14 @@ class WP_Reranking_Plugin {
 
         $reranked = $this->rerank_results($fulltext, $vector, false, $limit, 6, $query);
 
+        if ($sql === null && isset($fulltext['sql'])) {
+            $sql = $fulltext['sql'];
+        }
+
+        if (empty($sql)) {
+            $sql = 'none';
+        }
+
         $this->log_debug('Returning reranked response.', array(
             'result_count' => count($reranked)
         ));
@@ -139,6 +155,7 @@ class WP_Reranking_Plugin {
             'success' => true,
             'query' => $query,
             'method' => 'reranking',
+            'sql' => $sql,
             'results' => $reranked,
             'count' => count($reranked),
         ));
@@ -482,6 +499,7 @@ class WP_Reranking_Plugin {
         return array(
             'fulltext' => $fulltext_data,
             'vector' => $vector_data,
+            'sql' => isset($fulltext_data['sql']) ? $fulltext_data['sql'] : null,
         );
     }
 
