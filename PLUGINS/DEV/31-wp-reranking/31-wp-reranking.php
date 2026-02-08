@@ -693,6 +693,7 @@ class WP_Reranking_Plugin {
         $limit = isset($_GET['rerank_limit']) ? intval($_GET['rerank_limit']) : 6;
         $output = null;
         $error = null;
+        $sql_output = 'none';
 
         if (isset($_GET['rerank_submit'])) {
             $fulltext_url = add_query_arg(
@@ -745,6 +746,9 @@ class WP_Reranking_Plugin {
                 if (is_array($fulltext_data) && is_array($vector_data)) {
                     $fulltext = $fulltext_data;
                     $vector = $vector_data;
+                    if (!empty($fulltext_data['sql'])) {
+                        $sql_output = $fulltext_data['sql'];
+                    }
 
                     $rerank_result = $this->rerank_results($fulltext, $vector, true, $limit, 6, $query);
                     if (is_array($rerank_result) && isset($rerank_result['results'])) {
@@ -820,6 +824,18 @@ class WP_Reranking_Plugin {
                     color: #374151;
                     line-height: 1.5;
                 }
+                .toplevel_page_wp-reranking .wp-reranking-sql {
+                    margin-top: 20px;
+                    background: #ecfeff;
+                    border-left: 4px solid #0ea5e9;
+                    padding: 16px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-sql pre {
+                    background: #fff;
+                    border: 1px solid #e5e7eb;
+                    padding: 12px;
+                    white-space: pre-wrap;
+                }
             </style>
             <h1>Reranker Test Page</h1>
             <p>Fetch hybrid search results from <code><?php echo esc_html(home_url('/wp-json/search/v1/hybrid-search')); ?></code> and rerank them.</p>
@@ -847,6 +863,19 @@ class WP_Reranking_Plugin {
             <?php endif; ?>
 
             <?php if ($output): ?>
+                <?php
+                $formatted_sql = is_string($sql_output) ? preg_replace('/\s+/', ' ', str_replace(array("\r", "\n"), ' ', $sql_output)) : '';
+                if ($formatted_sql !== '') {
+                    $formatted_sql = preg_replace('/\s+(SELECT|FROM|WHERE|ORDER BY|LIMIT|INNER JOIN|LEFT JOIN|RIGHT JOIN|JOIN|GROUP BY)\s+/i', "\n$1 ", $formatted_sql);
+                } else {
+                    $formatted_sql = 'none';
+                }
+                ?>
+                <div class="wp-reranking-sql">
+                    <h2>FTS SQL Used</h2>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">SQL used for the full-text lookup.</p>
+                    <pre><?php echo esc_html($formatted_sql); ?></pre>
+                </div>
                 <h2>Reranking Calculation Steps</h2>
                 <?php if (isset($output['steps'])): ?>
                     <?php foreach ($output['steps'] as $step): ?>
