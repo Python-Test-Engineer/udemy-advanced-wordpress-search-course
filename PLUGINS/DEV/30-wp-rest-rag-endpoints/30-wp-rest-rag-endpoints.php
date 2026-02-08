@@ -372,13 +372,16 @@ class WP_REST_RAG_Endpoints {
         }
 
         // Perform full-text search
-        $results = $this->fulltext_search($query, $limit);
+        $search_data = $this->fulltext_search($query, $limit);
+        $results = $search_data['results'];
+        $sql = $search_data['sql'];
 
         if (empty($results)) {
             return array(
                 'success' => true,
                 'query' => $query,
                 'method' => 'fulltext_search',
+                'sql' => $sql,
                 'results' => array(),
                 'count' => 0
             );
@@ -401,6 +404,7 @@ class WP_REST_RAG_Endpoints {
             'success' => true,
             'query' => $query,
             'method' => 'fulltext_search',
+            'sql' => $sql,
             'results' => $formatted_results,
             'count' => count($formatted_results)
         );
@@ -431,6 +435,7 @@ class WP_REST_RAG_Endpoints {
             'success' => true,
             'query' => $query,
             'method' => 'vector_search',
+            'sql' => 'none',
             'results' => $result['results'],
             'count' => count($result['results'])
         );
@@ -649,7 +654,10 @@ class WP_REST_RAG_Endpoints {
             $limit
         );
 
-        return $wpdb->get_results($sql);
+        return array(
+            'results' => $wpdb->get_results($sql),
+            'sql' => $sql
+        );
     }
 
     /**
