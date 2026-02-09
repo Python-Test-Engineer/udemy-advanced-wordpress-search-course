@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:  ✅ 06 WP SEARCH SIGNALS
+ * Plugin Name:  ✅ 40 WP SEARCH SIGNALS
  * Description: Record user actions as signals for machine learning.
  * Version: 1.1.0
  * Author: Craig West
@@ -72,12 +72,12 @@ class WP_Signals_Plugin {
     public function register_admin_menu() {
         add_menu_page(
             'WP Signals',
-            '06 WP SIGNALS',
+            '40 WP SIGNALS',
             'manage_options',
             'wp-signals',
             array( $this, 'render_admin_page' ),
             'dashicons-rss',
-            3.6
+            4.99
         );
     }
 

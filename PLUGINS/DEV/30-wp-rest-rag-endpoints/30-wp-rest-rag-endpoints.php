@@ -17,6 +17,9 @@ define('RAG_SEARCH_ENDPOINT', 'search');
 define('RAG_VECTOR_SEARCH_ENDPOINT', 'vector-search');
 define('RAG_HYBRID_SEARCH_ENDPOINT', 'hybrid-search');
 define('RAG_HYBRID_NAMESPACE', 'search/v1');
+define('RAG_FTS_NATURAL_NAMESPACE', 'fts-natural/v1');
+define('RAG_FTS_BOOLEAN_NAMESPACE', 'fts-boolean/v1');
+define('RAG_FTS_QUERY_EXPANSION_NAMESPACE', 'fts-query-expansion/v1');
 define('RAG_TABLE_NAME', 'wp_posts_rag');
 define('RAG_OPENAI_KEY_OPTION', 'posts_rag_openai_key');
 
@@ -26,6 +29,9 @@ class WP_REST_RAG_Endpoints {
         add_action('rest_api_init', array($this, 'register_rest_routes'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('wp_ajax_test_rag_search', array($this, 'ajax_test_search'));
+        add_action('wp_ajax_test_rag_search_natural', array($this, 'ajax_test_search_natural'));
+        add_action('wp_ajax_test_rag_search_boolean', array($this, 'ajax_test_search_boolean'));
+        add_action('wp_ajax_test_rag_search_query_expansion', array($this, 'ajax_test_search_query_expansion'));
         add_action('wp_ajax_test_rag_vector_search', array($this, 'ajax_test_vector_search'));
         add_action('wp_ajax_test_rag_hybrid_search', array($this, 'ajax_test_hybrid_search'));
         add_action('wp_ajax_create_rag_fulltext_index', array($this, 'ajax_create_fulltext_index'));
@@ -46,6 +52,72 @@ class WP_REST_RAG_Endpoints {
                     'type' => 'string',
                     'description' => 'Search query string',
                     'sanitize_callback' => array($this, 'sanitize_boolean_query')
+                ),
+                'limit' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 3,
+                    'description' => 'Number of results to return',
+                    'sanitize_callback' => 'absint'
+                )
+            )
+        ));
+
+        // Full-text search endpoint - Natural Language Mode
+        register_rest_route(RAG_FTS_NATURAL_NAMESPACE, '/' . RAG_SEARCH_ENDPOINT, array(
+            'methods' => 'GET',
+            'callback' => array($this, 'rest_search_posts_natural'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'query' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'description' => 'Search query string',
+                    'sanitize_callback' => array($this, 'sanitize_fulltext_query')
+                ),
+                'limit' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 3,
+                    'description' => 'Number of results to return',
+                    'sanitize_callback' => 'absint'
+                )
+            )
+        ));
+
+        // Full-text search endpoint - Boolean Mode
+        register_rest_route(RAG_FTS_BOOLEAN_NAMESPACE, '/' . RAG_SEARCH_ENDPOINT, array(
+            'methods' => 'GET',
+            'callback' => array($this, 'rest_search_posts_boolean'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'query' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'description' => 'Search query string',
+                    'sanitize_callback' => array($this, 'sanitize_boolean_query')
+                ),
+                'limit' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 3,
+                    'description' => 'Number of results to return',
+                    'sanitize_callback' => 'absint'
+                )
+            )
+        ));
+
+        // Full-text search endpoint - Query Expansion Mode
+        register_rest_route(RAG_FTS_QUERY_EXPANSION_NAMESPACE, '/' . RAG_SEARCH_ENDPOINT, array(
+            'methods' => 'GET',
+            'callback' => array($this, 'rest_search_posts_query_expansion'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'query' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'description' => 'Search query string',
+                    'sanitize_callback' => array($this, 'sanitize_fulltext_query')
                 ),
                 'limit' => array(
                     'required' => false,
@@ -136,6 +208,24 @@ class WP_REST_RAG_Endpoints {
     }
 
     /**
+     * Sanitize general full-text queries (natural language, query expansion).
+     */
+    public function sanitize_fulltext_query($value) {
+        $value = is_string($value) ? wp_unslash($value) : '';
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $allowed_pattern = '/[^\p{L}\p{N}\s\"\']+/u';
+        $value = preg_replace($allowed_pattern, ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        return trim($value);
+    }
+
+    /**
      * Admin page content
      */
     public function admin_page() {
@@ -179,6 +269,96 @@ class WP_REST_RAG_Endpoints {
             </div>
 
             <div class="card" style="margin-top: 20px;">
+                <h2>Test FTS Natural Language Endpoint</h2>
+                <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (natural language mode) with query "FOAM" and limit 3.</p>
+                <button type="button" id="test-search-natural-btn" class="button button-primary">Test FTS Natural</button>
+                <div id="search-natural-results" style="margin-top: 15px; display: none;">
+                    <h3>Results:</h3>
+                    <pre id="search-natural-response" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"></pre>
+                </div>
+                <details style="margin-top: 12px;">
+                    <summary><strong>Sample Output (Natural Language Mode)</strong></summary>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;">{
+  "success": true,
+  "query": "FOAM",
+  "method": "fulltext_search_natural",
+  "sql": "SELECT ... AGAINST ('FOAM' IN NATURAL LANGUAGE MODE) ...",
+  "results": [
+    {
+      "post_id": 101,
+      "post_title": "Memory Foam Mattress Guide",
+      "relevance_score": 4.5231,
+      "categories": "Mattresses",
+      "tags": "foam, sleep",
+      "content": "..."
+    }
+  ],
+  "count": 1
+}</pre>
+                </details>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h2>Test FTS Boolean Endpoint</h2>
+                <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (boolean mode) with query "FOAM" and limit 3.</p>
+                <button type="button" id="test-search-boolean-btn" class="button button-primary">Test FTS Boolean</button>
+                <div id="search-boolean-results" style="margin-top: 15px; display: none;">
+                    <h3>Results:</h3>
+                    <pre id="search-boolean-response" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"></pre>
+                </div>
+                <details style="margin-top: 12px;">
+                    <summary><strong>Sample Output (Boolean Mode)</strong></summary>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;">{
+  "success": true,
+  "query": "+FOAM -latex",
+  "method": "fulltext_search_boolean",
+  "sql": "SELECT ... AGAINST ('+FOAM -latex' IN BOOLEAN MODE) ...",
+  "results": [
+    {
+      "post_id": 102,
+      "post_title": "Foam Pillow Essentials",
+      "relevance_score": 6.1189,
+      "categories": "Pillows",
+      "tags": "foam, comfort",
+      "content": "..."
+    }
+  ],
+  "count": 1
+}</pre>
+                </details>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h2>Test FTS Query Expansion Endpoint</h2>
+                <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (query expansion) with query "FOAM" and limit 3.</p>
+                <button type="button" id="test-search-query-expansion-btn" class="button button-primary">Test FTS Query Expansion</button>
+                <div id="search-query-expansion-results" style="margin-top: 15px; display: none;">
+                    <h3>Results:</h3>
+                    <pre id="search-query-expansion-response" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"></pre>
+                </div>
+                <details style="margin-top: 12px;">
+                    <summary><strong>Sample Output (Query Expansion)</strong></summary>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;">{
+  "success": true,
+  "query": "FOAM",
+  "method": "fulltext_search_query_expansion",
+  "sql": "SELECT ... AGAINST ('FOAM' IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION) ...",
+  "results": [
+    {
+      "post_id": 103,
+      "post_title": "High-Density Foam",
+      "relevance_score": 5.9024,
+      "categories": "Materials",
+      "tags": "foam, density",
+      "content": "..."
+    }
+  ],
+  "count": 1
+}</pre>
+                </details>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
                 <h2>Test Vector Search Endpoint</h2>
                 <p>Test the <code><?php echo RAG_VECTOR_SEARCH_ENDPOINT; ?></code> endpoint with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-vector-search-btn" class="button button-primary">Test Vector Search</button>
@@ -203,6 +383,18 @@ class WP_REST_RAG_Endpoints {
                 <h3>Full-Text Search</h3>
                 <p>Search using MySQL full-text index (keyword matching):</p>
                 <code><?php echo esc_url(rest_url(RAG_PLUGIN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
+
+                <h3 style="margin-top: 15px;">FTS Natural Language</h3>
+                <p>Search using MySQL full-text index (natural language mode):</p>
+                <code><?php echo esc_url(rest_url(RAG_FTS_NATURAL_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
+
+                <h3 style="margin-top: 15px;">FTS Boolean</h3>
+                <p>Search using MySQL full-text index (boolean mode):</p>
+                <code><?php echo esc_url(rest_url(RAG_FTS_BOOLEAN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
+
+                <h3 style="margin-top: 15px;">FTS Query Expansion</h3>
+                <p>Search using MySQL full-text index (query expansion mode):</p>
+                <code><?php echo esc_url(rest_url(RAG_FTS_QUERY_EXPANSION_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
 
                 <h3 style="margin-top: 15px;">Vector Search</h3>
                 <p>Search using semantic similarity (requires embeddings):</p>
@@ -262,6 +454,105 @@ class WP_REST_RAG_Endpoints {
                     },
                     complete: function() {
                         $btn.prop('disabled', false).text('Test Full-Text Search');
+                    }
+                });
+            });
+
+            // Test FTS Natural Language Search
+            $('#test-search-natural-btn').on('click', function() {
+                var $btn = $(this);
+                var $results = $('#search-natural-results');
+                var $response = $('#search-natural-response');
+
+                $btn.prop('disabled', true).text('Testing...');
+                $results.hide();
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'test_rag_search_natural'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $response.text(JSON.stringify(response.data, null, 2));
+                            $results.show();
+                            showMessage('FTS natural language test completed successfully!', 'success');
+                        } else {
+                            showMessage(response.data || 'Search failed', 'error');
+                        }
+                    },
+                    error: function() {
+                        showMessage('An error occurred while testing the search.', 'error');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('Test FTS Natural');
+                    }
+                });
+            });
+
+            // Test FTS Boolean Search
+            $('#test-search-boolean-btn').on('click', function() {
+                var $btn = $(this);
+                var $results = $('#search-boolean-results');
+                var $response = $('#search-boolean-response');
+
+                $btn.prop('disabled', true).text('Testing...');
+                $results.hide();
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'test_rag_search_boolean'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $response.text(JSON.stringify(response.data, null, 2));
+                            $results.show();
+                            showMessage('FTS boolean test completed successfully!', 'success');
+                        } else {
+                            showMessage(response.data || 'Search failed', 'error');
+                        }
+                    },
+                    error: function() {
+                        showMessage('An error occurred while testing the search.', 'error');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('Test FTS Boolean');
+                    }
+                });
+            });
+
+            // Test FTS Query Expansion Search
+            $('#test-search-query-expansion-btn').on('click', function() {
+                var $btn = $(this);
+                var $results = $('#search-query-expansion-results');
+                var $response = $('#search-query-expansion-response');
+
+                $btn.prop('disabled', true).text('Testing...');
+                $results.hide();
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'test_rag_search_query_expansion'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $response.text(JSON.stringify(response.data, null, 2));
+                            $results.show();
+                            showMessage('FTS query expansion test completed successfully!', 'success');
+                        } else {
+                            showMessage(response.data || 'Search failed', 'error');
+                        }
+                    },
+                    error: function() {
+                        showMessage('An error occurred while testing the search.', 'error');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('Test FTS Query Expansion');
                     }
                 });
             });
@@ -370,6 +661,34 @@ class WP_REST_RAG_Endpoints {
      * REST API endpoint: Search posts
      */
     public function rest_search_posts($request) {
+        return $this->rest_fulltext_search($request, 'boolean', 'fulltext_search');
+    }
+
+    /**
+     * REST API endpoint: Search posts (natural language mode)
+     */
+    public function rest_search_posts_natural($request) {
+        return $this->rest_fulltext_search($request, 'natural', 'fulltext_search_natural');
+    }
+
+    /**
+     * REST API endpoint: Search posts (boolean mode)
+     */
+    public function rest_search_posts_boolean($request) {
+        return $this->rest_fulltext_search($request, 'boolean', 'fulltext_search_boolean');
+    }
+
+    /**
+     * REST API endpoint: Search posts (query expansion mode)
+     */
+    public function rest_search_posts_query_expansion($request) {
+        return $this->rest_fulltext_search($request, 'query_expansion', 'fulltext_search_query_expansion');
+    }
+
+    /**
+     * Shared full-text REST handler for multiple modes.
+     */
+    private function rest_fulltext_search($request, $mode, $method_label) {
         global $wpdb;
 
         $query = $request->get_param('query');
@@ -390,7 +709,7 @@ class WP_REST_RAG_Endpoints {
         }
 
         // Perform full-text search
-        $search_data = $this->fulltext_search($query, $limit);
+        $search_data = $this->fulltext_search($query, $limit, $mode);
         $results = $search_data['results'];
         $sql = $search_data['sql'];
 
@@ -398,7 +717,7 @@ class WP_REST_RAG_Endpoints {
             return array(
                 'success' => true,
                 'query' => $query,
-                'method' => 'fulltext_search',
+                'method' => $method_label,
                 'sql' => $sql,
                 'results' => array(),
                 'count' => 0
@@ -421,7 +740,7 @@ class WP_REST_RAG_Endpoints {
         return array(
             'success' => true,
             'query' => $query,
-            'method' => 'fulltext_search',
+            'method' => $method_label,
             'sql' => $sql,
             'results' => $formatted_results,
             'count' => count($formatted_results)
@@ -653,11 +972,17 @@ class WP_REST_RAG_Endpoints {
     /**
      * Perform full-text search on the RAG table
      */
-    private function fulltext_search($query, $limit = 3) {
+    private function fulltext_search($query, $limit = 3, $mode = 'boolean') {
         global $wpdb;
 
-        // Escape the query for use in MATCH AGAINST
-        $search_query = $wpdb->esc_like($query);
+        $mode = strtolower($mode);
+        $mode_sql = 'IN BOOLEAN MODE';
+
+        if ($mode === 'natural') {
+            $mode_sql = 'IN NATURAL LANGUAGE MODE';
+        } elseif ($mode === 'query_expansion') {
+            $mode_sql = 'IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION';
+        }
 
         $sql = $wpdb->prepare(
             "SELECT
@@ -667,10 +992,10 @@ class WP_REST_RAG_Endpoints {
                 categories,
                 tags,
                 MATCH(post_title, post_content)
-                AGAINST (%s IN BOOLEAN MODE) as relevance_score
+                AGAINST (%s {$mode_sql}) as relevance_score
             FROM " . RAG_TABLE_NAME . "
             WHERE MATCH(post_title, post_content)
-                AGAINST (%s IN BOOLEAN MODE)
+                AGAINST (%s {$mode_sql})
             ORDER BY relevance_score DESC
             LIMIT %d",
             $query,
@@ -762,6 +1087,78 @@ class WP_REST_RAG_Endpoints {
         $request->set_param('limit', $limit);
 
         $response = $this->rest_search_posts($request);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error($response->get_error_message());
+        } else {
+            wp_send_json_success($response);
+        }
+    }
+
+    /**
+     * AJAX handler for testing FTS natural language search
+     */
+    public function ajax_test_search_natural() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $query = 'FOAM';
+        $limit = 3;
+
+        $request = new WP_REST_Request('GET', RAG_FTS_NATURAL_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
+        $request->set_param('query', $query);
+        $request->set_param('limit', $limit);
+
+        $response = $this->rest_search_posts_natural($request);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error($response->get_error_message());
+        } else {
+            wp_send_json_success($response);
+        }
+    }
+
+    /**
+     * AJAX handler for testing FTS boolean search
+     */
+    public function ajax_test_search_boolean() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $query = 'FOAM';
+        $limit = 3;
+
+        $request = new WP_REST_Request('GET', RAG_FTS_BOOLEAN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
+        $request->set_param('query', $query);
+        $request->set_param('limit', $limit);
+
+        $response = $this->rest_search_posts_boolean($request);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error($response->get_error_message());
+        } else {
+            wp_send_json_success($response);
+        }
+    }
+
+    /**
+     * AJAX handler for testing FTS query expansion search
+     */
+    public function ajax_test_search_query_expansion() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $query = 'FOAM';
+        $limit = 3;
+
+        $request = new WP_REST_Request('GET', RAG_FTS_QUERY_EXPANSION_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
+        $request->set_param('query', $query);
+        $request->set_param('limit', $limit);
+
+        $response = $this->rest_search_posts_query_expansion($request);
 
         if (is_wp_error($response)) {
             wp_send_json_error($response->get_error_message());
