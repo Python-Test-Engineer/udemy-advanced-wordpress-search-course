@@ -689,7 +689,7 @@ class WP_Reranking_Plugin {
     }
 
     public function render_admin_page() {
-        $query = isset($_GET['rerank_query']) ? sanitize_text_field($_GET['rerank_query']) : 'Foam products';
+        $query = isset($_GET['rerank_query']) ? sanitize_text_field($_GET['rerank_query']) : 'Foam based items';
         $limit = isset($_GET['rerank_limit']) ? intval($_GET['rerank_limit']) : 6;
         $output = null;
         $error = null;

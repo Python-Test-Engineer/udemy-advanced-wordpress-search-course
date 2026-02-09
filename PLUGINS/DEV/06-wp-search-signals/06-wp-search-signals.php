@@ -130,7 +130,7 @@ class WP_Signals_Plugin {
                             id="ws_query"
                             type="text"
                             class="regular-text"
-                            value="FOAM products"
+                            value="FOAM based items"
                            
                         />
                         <button type="button" class="button button-primary" id="ws_query_run">
