@@ -61,6 +61,8 @@ class WP_Reranking_Plugin {
     public function handle_rerank_request(WP_REST_Request $request) {
         $query = $request->get_param('query');
         $limit = $request->get_param('limit');
+        $fts_mode = $request->get_param('fts_mode');
+        $weight_option = $request->get_param('weight');
         $payload = $request->get_json_params();
 
         $this->log_debug('Rerank request received.', array(
@@ -107,6 +109,9 @@ class WP_Reranking_Plugin {
         }
 
         $limit = $limit ? absint($limit) : 6;
+        $weights = $this->parse_weight_option($weight_option);
+        $fts_weight = $weights['fts'];
+        $vector_weight = $weights['vector'];
 
         if (!$fulltext && !$vector) {
             if (empty($query)) {
@@ -115,7 +120,7 @@ class WP_Reranking_Plugin {
                     'message' => 'Missing query or payload.',
                 ), 400);
             }
-            $search_payloads = $this->fetch_search_payloads($query, $limit);
+            $search_payloads = $this->fetch_search_payloads($query, $limit, $fts_mode);
 
             if (isset($search_payloads['error'])) {
                 $this->log_debug('Failed to fetch search payloads.', $search_payloads['error']);
@@ -137,7 +142,7 @@ class WP_Reranking_Plugin {
             'vector_count' => isset($vector['results']) ? count($vector['results']) : 0
         ));
 
-        $reranked = $this->rerank_results($fulltext, $vector, false, $limit, 6, $query);
+        $reranked = $this->rerank_results($fulltext, $vector, false, $limit, 6, $query, $fts_weight, $vector_weight);
 
         if ($sql === null && isset($fulltext['sql'])) {
             $sql = $fulltext['sql'];
@@ -164,7 +169,7 @@ class WP_Reranking_Plugin {
     /**
      * Combine and rerank FTS + vector results.
      */
-    private function rerank_results($fulltext, $vector, $explain = false, $limit = null, $per_method_limit = 6, $query = '') {
+    private function rerank_results($fulltext, $vector, $explain = false, $limit = null, $per_method_limit = 6, $query = '', $fts_weight = 1, $vector_weight = 1) {
         $items = array();
         $max_relevance = 0;
         $max_similarity = 0;
@@ -173,6 +178,10 @@ class WP_Reranking_Plugin {
         $per_method_limit = $per_method_limit ? absint($per_method_limit) : 6;
         $per_method_limit = max(1, $per_method_limit);
         $query = is_string($query) ? trim($query) : '';
+        $fts_weight = floatval($fts_weight);
+        $vector_weight = floatval($vector_weight);
+        $fts_weight = $fts_weight > 0 ? $fts_weight : 1;
+        $vector_weight = $vector_weight > 0 ? $vector_weight : 1;
 
         $this->log_debug('Starting rerank.', array(
             'fulltext_has_results' => is_array($fulltext) && isset($fulltext['results']),
@@ -348,7 +357,9 @@ class WP_Reranking_Plugin {
             $normalized_relevance = isset($item['relevance_score']) ? ($item['relevance_score'] / $max_relevance) : 0;
             $normalized_similarity = isset($item['similarity_score']) ? ($item['similarity_score'] / $max_similarity) : 0;
             $title_boost = $this->get_title_keyword_boost($item, $query);
-            $items[$post_id]['combined_score'] = $normalized_relevance + $normalized_similarity + $title_boost;
+            $items[$post_id]['combined_score'] = ($normalized_relevance * $fts_weight)
+                + ($normalized_similarity * $vector_weight)
+                + $title_boost;
         }
 
         if ($explain) {
@@ -359,11 +370,11 @@ class WP_Reranking_Plugin {
                 $normalized_items[$post_id] = $item;
                 $normalized_items[$post_id]['normalized_relevance'] = number_format($item['relevance_score'], 4) . ' / ' . number_format($max_relevance, 4) . ' = ' . number_format($normalized_relevance, 4);
                 $normalized_items[$post_id]['normalized_similarity'] = number_format($item['similarity_score'], 4) . ' / ' . number_format($max_similarity, 4) . ' = ' . number_format($normalized_similarity, 4);
-                $normalized_items[$post_id]['combined_score'] = number_format($normalized_relevance, 4) . ' + ' . number_format($normalized_similarity, 4) . ' = ' . number_format($item['combined_score'], 4);
+                $normalized_items[$post_id]['combined_score'] = '(' . number_format($normalized_relevance, 4) . ' × ' . $fts_weight . ') + (' . number_format($normalized_similarity, 4) . ' × ' . $vector_weight . ') = ' . number_format($item['combined_score'], 4);
             }
             $steps[] = array(
                 'step' => 'Normalization and Combined Score',
-                'description' => 'Normalized relevance and similarity scores by dividing by their respective max values, then computed combined score as sum of normalized relevance + normalized similarity.',
+                'description' => 'Normalized relevance and similarity scores by dividing by their respective max values, then computed combined score using weighting (FTS × ' . $fts_weight . ', Vector × ' . $vector_weight . ').',
                 'normalized_items' => $normalized_items
             );
         }
@@ -447,15 +458,16 @@ class WP_Reranking_Plugin {
     /**
      * Fetch fulltext + vector payloads from the local REST endpoints.
      */
-    private function fetch_search_payloads($query, $limit) {
+    private function fetch_search_payloads($query, $limit, $fts_mode = null) {
         $limit = max(1, min(10, $limit));
+        $fts_endpoint = $this->get_fts_endpoint_path($fts_mode);
 
         $fulltext_url = add_query_arg(
             array(
                 'query' => $query,
                 'limit' => $limit,
             ),
-            rest_url('search/v1/search')
+            rest_url($fts_endpoint)
         );
 
         $vector_url = add_query_arg(
@@ -500,6 +512,54 @@ class WP_Reranking_Plugin {
             'fulltext' => $fulltext_data,
             'vector' => $vector_data,
             'sql' => isset($fulltext_data['sql']) ? $fulltext_data['sql'] : null,
+        );
+    }
+
+    /**
+     * Resolve FTS endpoint path for the selected mode.
+     */
+    private function get_fts_endpoint_path($fts_mode) {
+        $mode = is_string($fts_mode) ? strtolower(trim($fts_mode)) : '';
+
+        if ($mode === 'natural') {
+            return 'fts-natural/v1/search';
+        }
+
+        if ($mode === 'boolean') {
+            return 'fts-boolean/v1/search';
+        }
+
+        if ($mode === 'query-expansion') {
+            return 'fts-query-expansion/v1/search';
+        }
+
+        return 'search/v1/search';
+    }
+
+    /**
+     * Parse weighting string like "2:1" into numeric weights.
+     */
+    private function parse_weight_option($weight_option) {
+        $default = array('fts' => 1, 'vector' => 1);
+        if (!is_string($weight_option) || trim($weight_option) === '') {
+            return $default;
+        }
+
+        $parts = array_map('trim', explode(':', $weight_option));
+        if (count($parts) !== 2) {
+            return $default;
+        }
+
+        $fts = floatval($parts[0]);
+        $vector = floatval($parts[1]);
+
+        if ($fts <= 0 || $vector <= 0) {
+            return $default;
+        }
+
+        return array(
+            'fts' => $fts,
+            'vector' => $vector,
         );
     }
 
@@ -691,17 +751,23 @@ class WP_Reranking_Plugin {
     public function render_admin_page() {
         $query = isset($_GET['rerank_query']) ? sanitize_text_field($_GET['rerank_query']) : 'Foam based items';
         $limit = isset($_GET['rerank_limit']) ? intval($_GET['rerank_limit']) : 6;
+        $fts_mode = isset($_GET['fts_mode']) ? sanitize_text_field($_GET['fts_mode']) : 'natural';
+        $weight_option = isset($_GET['weight_option']) ? sanitize_text_field($_GET['weight_option']) : '1:1';
         $output = null;
         $error = null;
         $sql_output = 'none';
 
         if (isset($_GET['rerank_submit'])) {
+            $weights = $this->parse_weight_option($weight_option);
+            $fts_weight = $weights['fts'];
+            $vector_weight = $weights['vector'];
+            $fts_endpoint = $this->get_fts_endpoint_path($fts_mode);
             $fulltext_url = add_query_arg(
                 array(
                     'query' => $query,
                     'limit' => $limit,
                 ),
-                home_url('/wp-json/search/v1/search')
+                home_url('/wp-json/' . $fts_endpoint)
             );
 
             $vector_url = add_query_arg(
@@ -750,12 +816,13 @@ class WP_Reranking_Plugin {
                         $sql_output = $fulltext_data['sql'];
                     }
 
-                    $rerank_result = $this->rerank_results($fulltext, $vector, true, $limit, 6, $query);
+                    $rerank_result = $this->rerank_results($fulltext, $vector, true, $limit, 6, $query, $fts_weight, $vector_weight);
                     if (is_array($rerank_result) && isset($rerank_result['results'])) {
                         $output = array(
                             'success' => true,
                             'query' => $query,
                             'method' => 'reranking',
+                            'weights' => array('fts' => $fts_weight, 'vector' => $vector_weight),
                             'results' => $rerank_result['results'],
                             'steps' => $rerank_result['steps'],
                             'count' => isset($fulltext_data['count']) ? $fulltext_data['count'] : null,
@@ -767,6 +834,7 @@ class WP_Reranking_Plugin {
                             'success' => true,
                             'query' => $query,
                             'method' => 'reranking',
+                            'weights' => array('fts' => $fts_weight, 'vector' => $vector_weight),
                             'results' => $rerank_result,
                             'count' => isset($fulltext_data['count']) ? $fulltext_data['count'] : null,
                         );
@@ -853,6 +921,28 @@ class WP_Reranking_Plugin {
                     <tr>
                         <th scope="row"><label for="rerank_limit">Limit</label></th>
                         <td><input type="number" id="rerank_limit" name="rerank_limit" value="<?php echo esc_attr($limit); ?>" min="1" max="50" /></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="fts_mode">FTS Mode</label></th>
+                        <td>
+                            <select id="fts_mode" name="fts_mode">
+                                <option value="natural" <?php selected($fts_mode, 'natural'); ?>>Natural Language</option>
+                                <option value="boolean" <?php selected($fts_mode, 'boolean'); ?>>Boolean</option>
+                                <option value="query-expansion" <?php selected($fts_mode, 'query-expansion'); ?>>Query Expansion</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="weight_option">FTS vs Vector Weighting</label></th>
+                        <td>
+                            <select id="weight_option" name="weight_option">
+                                <option value="1:1" <?php selected($weight_option, '1:1'); ?>>1 : 1 (Balanced)</option>
+                                <option value="2:1" <?php selected($weight_option, '2:1'); ?>>2 : 1 (FTS heavy)</option>
+                                <option value="1:2" <?php selected($weight_option, '1:2'); ?>>1 : 2 (Vector heavy)</option>
+                                <option value="3:1" <?php selected($weight_option, '3:1'); ?>>3 : 1 (FTS strong)</option>
+                                <option value="1:3" <?php selected($weight_option, '1:3'); ?>>1 : 3 (Vector strong)</option>
+                            </select>
+                        </td>
                     </tr>
                 </table>
                 <?php submit_button('Run Rerank', 'primary', 'rerank_submit'); ?>
