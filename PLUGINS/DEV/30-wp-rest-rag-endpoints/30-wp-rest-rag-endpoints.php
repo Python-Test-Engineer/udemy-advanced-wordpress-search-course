@@ -711,7 +711,7 @@ class WP_REST_RAG_Endpoints {
         // Perform full-text search
         $search_data = $this->fulltext_search($query, $limit, $mode);
         $results = $search_data['results'];
-        $sql = $search_data['sql'];
+        $sql = $this->normalize_sql_output($search_data['sql']);
 
         if (empty($results)) {
             return array(
@@ -806,7 +806,7 @@ class WP_REST_RAG_Endpoints {
         if (!is_wp_error($fulltext_response) && isset($fulltext_response['results'])) {
             $fulltext_results = $fulltext_response['results'];
             if (!empty($fulltext_response['sql'])) {
-                $fulltext_sql = $fulltext_response['sql'];
+                $fulltext_sql = $this->normalize_sql_output($fulltext_response['sql']);
             }
         }
 
@@ -1007,6 +1007,17 @@ class WP_REST_RAG_Endpoints {
             'results' => $wpdb->get_results($sql),
             'sql' => $sql
         );
+    }
+
+    /**
+     * Normalize SQL output for JSON responses by removing line breaks.
+     */
+    private function normalize_sql_output($sql) {
+        if (!is_string($sql)) {
+            return $sql;
+        }
+
+        return trim(preg_replace('/\s*\r?\n\s*/', ' ', $sql));
     }
 
     /**
