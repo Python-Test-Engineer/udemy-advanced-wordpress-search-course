@@ -1021,7 +1021,7 @@ class WP_Reranking_Plugin {
                                 <div class="wp-reranking-excerpt">
                                     <?php
                                     $excerpt = $result['excerpt'] ?? $result['content'] ?? $result['post_content'] ?? '';
-                                    echo esc_html(wp_trim_words($excerpt, 28, '...'));
+                                    echo esc_html($excerpt);
                                     ?>
                                 </div>
                             </div>
