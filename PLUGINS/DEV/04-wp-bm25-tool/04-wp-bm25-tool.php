@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: ✅ 04 FTS TOOL
+ * Plugin Name: ✅ 04 BM25 TOOL
  * Plugin URI: https://example.com/fts-teaching
- * Description: Interactive demonstration of core Full-Text Search algorithms (TF, IDF, TF-IDF, BM25) for teaching purposes
+ * Description: Interactive demonstration of core Full-Text Search algorithms (TF, IDF, TF-IDF, BM25) for teaching purposes.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Craig West
  * Author URI: https://example.com
  * License: GPL v2 or later
  * Text Domain: fts-teaching
@@ -29,7 +29,7 @@ class FTS_Teaching_Plugin {
     public function add_admin_menu() {
         add_menu_page(
             'FTS Teaching Tool',
-            '04 FTS TOOL',
+            '04 BM25 TOOL',
             'manage_options',
             'fts-teaching',
             array($this, 'render_admin_page'),

@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: ✅ 05 FTS MANAGER
+ * Plugin Name: ✅ 05 WP PRODUCTS
  * Plugin URI: https://example.com/fts-manager
- * Description: Manage MySQL Full Text Search indexes and test queries with relevance rankings
+ * Description: Manage MySQL Full Text Search indexes and test queries with relevance rankings for wp_products table.
  * Version: 1.0.1
- * Author: Your Name
+ * Author: Craig West
  * License: GPL v2 or later
  * Text Domain: fts-manager
  */
@@ -32,7 +32,7 @@ class FTS_Manager {
     public function add_admin_menu() {
         add_menu_page(
             __('Full Text Search', 'fts-manager'),
-            '05 FTS MANAGER',
+            '05 WP PRODUCTS',
             'manage_options',
             'fts-manager',
             array($this, 'render_admin_page'),
