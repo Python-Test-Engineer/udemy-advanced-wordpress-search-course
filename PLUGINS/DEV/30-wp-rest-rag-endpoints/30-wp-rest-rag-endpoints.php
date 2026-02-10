@@ -28,7 +28,6 @@ class WP_REST_RAG_Endpoints {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_rest_routes'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
-        add_action('wp_ajax_test_rag_search', array($this, 'ajax_test_search'));
         add_action('wp_ajax_test_rag_search_natural', array($this, 'ajax_test_search_natural'));
         add_action('wp_ajax_test_rag_search_boolean', array($this, 'ajax_test_search_boolean'));
         add_action('wp_ajax_test_rag_search_query_expansion', array($this, 'ajax_test_search_query_expansion'));
@@ -41,28 +40,6 @@ class WP_REST_RAG_Endpoints {
      * Register REST API routes
      */
     public function register_rest_routes() {
-        // Full-text search endpoint
-        register_rest_route(RAG_PLUGIN_NAMESPACE, '/' . RAG_SEARCH_ENDPOINT, array(
-            'methods' => 'GET',
-            'callback' => array($this, 'rest_search_posts'),
-            'permission_callback' => '__return_true',
-            'args' => array(
-                'query' => array(
-                    'required' => true,
-                    'type' => 'string',
-                    'description' => 'Search query string',
-                    'sanitize_callback' => array($this, 'sanitize_boolean_query')
-                ),
-                'limit' => array(
-                    'required' => false,
-                    'type' => 'integer',
-                    'default' => 3,
-                    'description' => 'Number of results to return',
-                    'sanitize_callback' => 'absint'
-                )
-            )
-        ));
-
         // Full-text search endpoint - Natural Language Mode
         register_rest_route(RAG_FTS_NATURAL_NAMESPACE, '/' . RAG_SEARCH_ENDPOINT, array(
             'methods' => 'GET',
@@ -259,16 +236,6 @@ class WP_REST_RAG_Endpoints {
             </div>
 
             <div class="card" style="margin-top: 20px;">
-                <h2>Test Full-Text Search Endpoint</h2>
-                <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint with query "FOAM" and limit 3.</p>
-                <button type="button" id="test-search-btn" class="button button-primary">Test Full-Text Search</button>
-                <div id="search-results" style="margin-top: 15px; display: none;">
-                    <h3>Results:</h3>
-                    <pre id="search-response" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"></pre>
-                </div>
-            </div>
-
-            <div class="card" style="margin-top: 20px;">
                 <h2>Test FTS Natural Language Endpoint</h2>
                 <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (natural language mode) with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-search-natural-btn" class="button button-primary">Test FTS Natural</button>
@@ -380,11 +347,7 @@ class WP_REST_RAG_Endpoints {
 
             <div class="card" style="margin-top: 20px;">
                 <h2>REST API Endpoints</h2>
-                <h3>Full-Text Search</h3>
-                <p>Search using MySQL full-text index (keyword matching):</p>
-                <code><?php echo esc_url(rest_url(RAG_PLUGIN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
-
-                <h3 style="margin-top: 15px;">FTS Natural Language</h3>
+                <h3>FTS Natural Language</h3>
                 <p>Search using MySQL full-text index (natural language mode):</p>
                 <code><?php echo esc_url(rest_url(RAG_FTS_NATURAL_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT)); ?>?query=FOAM&limit=3</code>
 
@@ -424,39 +387,6 @@ class WP_REST_RAG_Endpoints {
                     $msg.fadeOut();
                 }, 5000);
             }
-
-            // Test Full-Text Search
-            $('#test-search-btn').on('click', function() {
-                var $btn = $(this);
-                var $results = $('#search-results');
-                var $response = $('#search-response');
-
-                $btn.prop('disabled', true).text('Testing...');
-                $results.hide();
-
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'test_rag_search'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            $response.text(JSON.stringify(response.data, null, 2));
-                            $results.show();
-                            showMessage('Full-text search test completed successfully!', 'success');
-                        } else {
-                            showMessage(response.data || 'Search failed', 'error');
-                        }
-                    },
-                    error: function() {
-                        showMessage('An error occurred while testing the search.', 'error');
-                    },
-                    complete: function() {
-                        $btn.prop('disabled', false).text('Test Full-Text Search');
-                    }
-                });
-            });
 
             // Test FTS Natural Language Search
             $('#test-search-natural-btn').on('click', function() {
@@ -658,13 +588,6 @@ class WP_REST_RAG_Endpoints {
     }
 
     /**
-     * REST API endpoint: Search posts
-     */
-    public function rest_search_posts($request) {
-        return $this->rest_fulltext_search($request, 'boolean', 'fulltext_search');
-    }
-
-    /**
      * REST API endpoint: Search posts (natural language mode)
      */
     public function rest_search_posts_natural($request) {
@@ -798,10 +721,10 @@ class WP_REST_RAG_Endpoints {
         $fulltext_sql = 'none';
 
         // Try full-text search first
-        $fulltext_request = new WP_REST_Request('GET', RAG_PLUGIN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
+        $fulltext_request = new WP_REST_Request('GET', RAG_FTS_BOOLEAN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
         $fulltext_request->set_param('query', $query);
         $fulltext_request->set_param('limit', $limit);
-        $fulltext_response = $this->rest_search_posts($fulltext_request);
+        $fulltext_response = $this->rest_fulltext_search($fulltext_request, 'boolean', 'fulltext_search_boolean');
 
         if (!is_wp_error($fulltext_response) && isset($fulltext_response['results'])) {
             $fulltext_results = $fulltext_response['results'];
@@ -1080,30 +1003,6 @@ class WP_REST_RAG_Endpoints {
 
         // Fallback to direct option access if plugin not available
         return get_option(RAG_OPENAI_KEY_OPTION);
-    }
-
-    /**
-     * AJAX handler for testing full-text search
-     */
-    public function ajax_test_search() {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized');
-        }
-
-        $query = 'FOAM';
-        $limit = 3;
-
-        $request = new WP_REST_Request('GET', RAG_PLUGIN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
-        $request->set_param('query', $query);
-        $request->set_param('limit', $limit);
-
-        $response = $this->rest_search_posts($request);
-
-        if (is_wp_error($response)) {
-            wp_send_json_error($response->get_error_message());
-        } else {
-            wp_send_json_success($response);
-        }
     }
 
     /**
