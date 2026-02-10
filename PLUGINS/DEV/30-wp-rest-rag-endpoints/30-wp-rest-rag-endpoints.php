@@ -338,6 +338,12 @@ class WP_REST_RAG_Endpoints {
             <div class="card" style="margin-top: 20px;">
                 <h2>Test Hybrid Search Endpoint</h2>
                 <p>Test the <code><?php echo RAG_HYBRID_SEARCH_ENDPOINT; ?></code> endpoint with query "FOAM" and limit 3 (gets 3 from each method, combines and deduplicates).</p>
+                <label for="hybrid-fts-mode" style="display: inline-block; margin-right: 8px;">FTS Mode:</label>
+                <select id="hybrid-fts-mode" style="min-width: 220px;">
+                    <option value="boolean">Boolean</option>
+                    <option value="natural">Natural Language</option>
+                    <option value="query_expansion">Query Expansion</option>
+                </select>
                 <button type="button" id="test-hybrid-search-btn" class="button button-primary">Test Hybrid Search</button>
                 <div id="hybrid-search-results" style="margin-top: 15px; display: none;">
                     <h3>Results:</h3>
@@ -525,6 +531,7 @@ class WP_REST_RAG_Endpoints {
                 var $btn = $(this);
                 var $results = $('#hybrid-search-results');
                 var $response = $('#hybrid-search-response');
+                var ftsMode = $('#hybrid-fts-mode').val();
 
                 $btn.prop('disabled', true).text('Testing...');
                 $results.hide();
@@ -533,7 +540,8 @@ class WP_REST_RAG_Endpoints {
                     url: ajaxurl,
                     type: 'POST',
                     data: {
-                        action: 'test_rag_hybrid_search'
+                        action: 'test_rag_hybrid_search',
+                        fts_mode: ftsMode
                     },
                     success: function(response) {
                         if (response.success) {
@@ -707,6 +715,7 @@ class WP_REST_RAG_Endpoints {
     public function rest_hybrid_search($request) {
         $query = $request->get_param('query');
         $limit = $request->get_param('limit');
+        $fts_mode = $request->get_param('fts_mode');
 
         if (empty($query)) {
             return new WP_Error('invalid_query', 'Query parameter is required', array('status' => 400));
@@ -715,16 +724,31 @@ class WP_REST_RAG_Endpoints {
         // Limit between 1 and 10 (per method, so total results will be up to 2x this)
         $limit = max(1, min(10, $limit));
 
+        $valid_fts_modes = array('boolean', 'natural', 'query_expansion');
+        $fts_mode = in_array($fts_mode, $valid_fts_modes, true) ? $fts_mode : 'boolean';
+
+        $fts_routes = array(
+            'boolean' => RAG_FTS_BOOLEAN_NAMESPACE,
+            'natural' => RAG_FTS_NATURAL_NAMESPACE,
+            'query_expansion' => RAG_FTS_QUERY_EXPANSION_NAMESPACE
+        );
+
+        $fts_labels = array(
+            'boolean' => 'fulltext_search_boolean',
+            'natural' => 'fulltext_search_natural',
+            'query_expansion' => 'fulltext_search_query_expansion'
+        );
+
         // Perform both searches
         $fulltext_results = array();
         $vector_results = array();
         $fulltext_sql = 'none';
 
         // Try full-text search first
-        $fulltext_request = new WP_REST_Request('GET', RAG_FTS_BOOLEAN_NAMESPACE . '/' . RAG_SEARCH_ENDPOINT);
+        $fulltext_request = new WP_REST_Request('GET', $fts_routes[$fts_mode] . '/' . RAG_SEARCH_ENDPOINT);
         $fulltext_request->set_param('query', $query);
         $fulltext_request->set_param('limit', $limit);
-        $fulltext_response = $this->rest_fulltext_search($fulltext_request, 'boolean', 'fulltext_search_boolean');
+        $fulltext_response = $this->rest_fulltext_search($fulltext_request, $fts_mode, $fts_labels[$fts_mode]);
 
         if (!is_wp_error($fulltext_response) && isset($fulltext_response['results'])) {
             $fulltext_results = $fulltext_response['results'];
@@ -771,6 +795,7 @@ class WP_REST_RAG_Endpoints {
                 'success' => true,
                 'query' => $query,
                 'method' => 'hybrid_search',
+                'fts_mode' => $fts_mode,
                 'sql' => $fulltext_sql,
                 'results' => array(),
                 'count' => 0,
@@ -783,6 +808,7 @@ class WP_REST_RAG_Endpoints {
             'success' => true,
             'query' => $query,
             'method' => 'hybrid_search',
+            'fts_mode' => $fts_mode,
             'sql' => $fulltext_sql,
             'results' => $combined_results,
             'count' => count($combined_results),
@@ -1111,10 +1137,12 @@ class WP_REST_RAG_Endpoints {
 
         $query = 'FOAM';
         $limit = 3;
+        $fts_mode = isset($_POST['fts_mode']) ? sanitize_text_field(wp_unslash($_POST['fts_mode'])) : 'boolean';
 
         $request = new WP_REST_Request('GET', RAG_HYBRID_NAMESPACE . '/' . RAG_HYBRID_SEARCH_ENDPOINT);
         $request->set_param('query', $query);
         $request->set_param('limit', $limit);
+        $request->set_param('fts_mode', $fts_mode);
 
         $response = $this->rest_hybrid_search($request);
 
