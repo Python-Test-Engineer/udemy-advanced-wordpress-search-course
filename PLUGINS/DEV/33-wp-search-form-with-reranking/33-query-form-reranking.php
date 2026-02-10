@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: ✅ 33 WP Full-Text Search Form
+ * Plugin Name: ✅ 33 BOOLEAN SEARCH
  * Plugin URI: https://example.com
  * Description: Advanced search form that generates encoded FTS query strings and shows full-text results.
  * Version: 1.0.0
@@ -39,8 +39,8 @@ class FTS_Query_Builder_Reranking {
      */
     public function add_admin_menu() {
         add_menu_page(
-            'FTS Query Builder',           // Page title
-            '33 FTS SEARCH',                   // Menu title
+            'BOOLEAN SEARCH',           // Page title
+            '33 BOOLEAN SEARCH',                   // Menu title
             'manage_options',            
             'fts-query-builder-reranking',            // Menu slug
             array($this, 'render_admin_page'), // Callback function
@@ -72,8 +72,8 @@ class FTS_Query_Builder_Reranking {
     public function render_admin_page() {
         ?>
         <div class="wrap">
-            <h1>FTS Query Builder + Full-Text Search</h1>
-            <p>Generate advanced search queries with operators and review the full-text output.</p>
+            <h1>BOOLEAN SEARCH BUILDER AND SEARCH</h1>
+            <h2>Generate advanced search queries with operators and review the full-text output.</h2>
             
             <style>
                 .fts-admin-container {
@@ -283,7 +283,7 @@ class FTS_Query_Builder_Reranking {
                         <strong>The Solution:</strong> We use <code>%2B</code> for the literal + character.<br><br>
                         <strong>Example:</strong><br>
                         • Search for: <code>+tutorial -premium develop*</code><br>
-                        • URL becomes: <code>/wp-json/search/v1/search?query=%2Btutorial%20-premium%20develop*</code><br>
+                        • URL becomes: <code>https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code><br>
                         • Backend receives: <code>+tutorial -premium develop*</code> ✓
                     </p>
                 </div>
@@ -292,9 +292,9 @@ class FTS_Query_Builder_Reranking {
                     <h3>API Endpoint Information:</h3>
                     <p>
                         <strong>Full-Text Search Endpoint:</strong><br>
-                        <code><?php echo get_site_url(); ?>/wp-json/search/v1/search?query=</code><br><br>
-                        This plugin automatically uses your site's domain with the full-text search endpoint.<br>
-                        The generated URL will work with your current WordPress installation.
+                        <code>https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code><br><br>
+                        This plugin now uses the remote full-text search endpoint for hybrid search.<br>
+                        The generated URL will call the external endpoint with your encoded query.
                     </p>
                 </div>
 
@@ -317,7 +317,7 @@ class FTS_Query_Builder_Reranking {
 
                 <div id="fts-admin-fulltext-result" class="fts-admin-result" style="border-left-color:#6a1b9a; background:#f5f3ff;">
                     <h3>Full-Text Results (Highest Score First)</h3>
-                    <p style="font-size:12px;color:#555;margin-bottom:12px;">This output is fetched from <code>/wp-json/search/v1/search</code> using the generated query.</p>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">This output is fetched from <code>https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code> using the generated query.</p>
                     <div id="fts-admin-fulltext-results" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
                 </div>
 
@@ -329,14 +329,14 @@ class FTS_Query_Builder_Reranking {
 
                 <div id="fts-admin-json-result" class="fts-admin-result" style="border-left-color:#10b981; background:#ecfdf5;">
                     <h3>Live JSON Response</h3>
-                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Actual response returned by <code>/wp-json/search/v1/search</code>.</p>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Actual response returned by <code>https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code>.</p>
                     <pre id="fts-admin-json-output" style="background:#fff;border:1px solid #ddd;padding:12px;overflow:auto;white-space:pre-wrap;"></pre>
                 </div>
 
                 <div class="fts-admin-info-box" style="background: #fff3e0; border-left-color: #ff9800;">
                     <h3>Full-Text Output (Ranked by Score)</h3>
                     <p>The full-text endpoint uses the MySQL full-text index and returns results ordered by relevance score.</p>
-                    <p><strong>Endpoint:</strong> <code><?php echo esc_html(get_site_url()); ?>/wp-json/search/v1/search?query=YOUR_QUERY</code></p>
+                    <p><strong>Endpoint:</strong> <code>https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code></p>
                     <p><strong>Output Fields:</strong></p>
                     <ul>
                         <li><strong>post_id</strong> - WordPress post ID</li>
@@ -387,7 +387,7 @@ class FTS_Query_Builder_Reranking {
                 }
 
                 function fetchFulltextAdmin(query) {
-                    const endpoint = '<?php echo esc_js(rest_url('search/v1/search')); ?>';
+                    const endpoint = 'https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search';
                     const url = `${endpoint}?query=${encodeURIComponent(query)}&limit=3`;
                     return $.ajax({
                         url: url,
@@ -589,7 +589,7 @@ class FTS_Query_Builder_Reranking {
         wp_localize_script('fts-query-builder-script', 'ftsAjax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('fts_query_nonce'),
-            'fulltextEndpoint' => rest_url('search/v1/search'),
+            'fulltextEndpoint' => 'https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search',
             'siteUrl' => get_site_url()
         ));
     }
@@ -693,11 +693,8 @@ class FTS_Query_Builder_Reranking {
         // Encode query using rawurlencode for proper + encoding
         $encoded = rawurlencode($query);
         
-        // Get current site URL
-        $site_url = get_site_url();
-        
         // Build the custom full-text search API URL
-        $api_url = $site_url . '/wp-json/search/v1/search?query=' . $encoded;
+        $api_url = 'https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=' . $encoded . '&limit=3';
         
         wp_send_json_success(array(
             'query' => $query,
@@ -804,7 +801,7 @@ class FTS_Query_Builder_Reranking {
 
             <div id="fts-fulltext-result" class="fts-result fts-fulltext-result" style="display: none;">
                 <h3>Full-Text Results (Highest Score First)</h3>
-                <p class="fts-fulltext-help">Results are fetched from <code class="fts-inline-code">/wp-json/search/v1/search</code> using your query.</p>
+                <p class="fts-fulltext-help">Results are fetched from <code class="fts-inline-code">https://mydigitalagent.co.uk/hybrid/wp-json/fts-boolean/v1/search?query=FOAM&limit=3</code> using your query.</p>
                 <div id="fts-fulltext-results" class="fts-fulltext-grid"></div>
             </div>
         </div>

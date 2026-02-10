@@ -34,8 +34,8 @@ jQuery(document).ready(function ($) {
     }
 
     function fetchFulltextResults(query) {
-        const endpoint = ftsAjax.fulltextEndpoint || `${ftsAjax.siteUrl}/wp-json/search/v1/search`;
-        const url = `${endpoint}?query=${encodeURIComponent(query)}`;
+        const endpoint = ftsAjax.fulltextEndpoint || `${ftsAjax.siteUrl}/wp-json/fts-boolean/v1/search`;
+        const url = `${endpoint}?query=${encodeURIComponent(query)}&limit=3`;
 
         return $.ajax({
             url: url,
