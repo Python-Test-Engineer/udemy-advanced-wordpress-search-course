@@ -106,6 +106,19 @@ class FTS_Teaching_Plugin {
             )
         );
     }
+
+    private function tokenize_text($text) {
+        $text = strtolower($text);
+        $tokens = preg_split('/[^a-z0-9]+/i', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        return $tokens ? $tokens : array();
+    }
+
+    private function normalize_query_terms($query) {
+        $terms = $this->tokenize_text($query);
+
+        return array_values(array_unique($terms));
+    }
     
     public function handle_search() {
         check_ajax_referer('fts_search_nonce', 'nonce');
@@ -135,22 +148,34 @@ class FTS_Teaching_Plugin {
     }
     
     private function search_tf($query) {
-        $terms = array_map('strtolower', explode(' ', $query));
+        $terms = $this->normalize_query_terms($query);
         $scores = array();
-        $total_docs = count($this->documents);
+
+        $doc_stats = array();
+        foreach ($this->documents as $doc) {
+            $tokens = $this->tokenize_text($doc['title'] . ' ' . $doc['content']);
+            $doc_stats[$doc['id']] = array(
+                'tokens' => $tokens,
+                'term_freqs' => array_count_values($tokens),
+                'length' => count($tokens)
+            );
+        }
         
         foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $doc_length = str_word_count($content);
+            $doc_length = $doc_stats[$doc['id']]['length'];
+            $term_freqs = $doc_stats[$doc['id']]['term_freqs'];
             $score = 0;
             $term_details = array();
+            $term_calculations = array();
             
             foreach ($terms as $term) {
-                $count = substr_count($content, $term);
-                if ($count > 0) {
-                    $score += $count;
-                    $term_details[] = "$term: $count";
-                }
+                $count = isset($term_freqs[$term]) ? $term_freqs[$term] : 0;
+                $score += $count;
+                $term_details[] = "$term: $count";
+                $term_calculations[] = array(
+                    'term' => $term,
+                    'tf' => $count
+                );
             }
             
             if ($score > 0) {
@@ -162,6 +187,7 @@ class FTS_Teaching_Plugin {
                         'method' => 'Term Frequency (TF)',
                         'formula' => 'TF = count of term in document',
                         'term_breakdown' => implode(', ', $term_details),
+                        'term_calculations' => $term_calculations,
                         'total_score' => $score,
                         'doc_length' => $doc_length,
                         'note' => 'TF rewards documents with more term occurrences'
@@ -178,9 +204,19 @@ class FTS_Teaching_Plugin {
     }
     
     private function search_tfidf($query) {
-        $terms = array_map('strtolower', explode(' ', $query));
+        $terms = $this->normalize_query_terms($query);
         $scores = array();
         $total_docs = count($this->documents);
+
+        $doc_stats = array();
+        foreach ($this->documents as $doc) {
+            $tokens = $this->tokenize_text($doc['title'] . ' ' . $doc['content']);
+            $doc_stats[$doc['id']] = array(
+                'tokens' => $tokens,
+                'term_freqs' => array_count_values($tokens),
+                'length' => count($tokens)
+            );
+        }
         
         // Calculate IDF for each term across all documents
         $idf = array();
@@ -189,8 +225,7 @@ class FTS_Teaching_Plugin {
         foreach ($terms as $term) {
             $docs_with_term = 0;
             foreach ($this->documents as $doc) {
-                $content = strtolower($doc['title'] . ' ' . $doc['content']);
-                if (strpos($content, $term) !== false) {
+                if (!empty($doc_stats[$doc['id']]['term_freqs'][$term])) {
                     $docs_with_term++;
                 }
             }
@@ -205,25 +240,23 @@ class FTS_Teaching_Plugin {
         
         // Calculate TF-IDF scores
         foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
-            $doc_length = str_word_count($content);
+            $doc_length = $doc_stats[$doc['id']]['length'];
+            $term_freqs = $doc_stats[$doc['id']]['term_freqs'];
             $score = 0;
             $term_calculations = array();
             
             foreach ($terms as $term) {
-                $tf = substr_count($content, $term);
-                if ($tf > 0) {
-                    $tfidf = $tf * $idf[$term];
-                    $score += $tfidf;
-                    $term_calculations[] = array(
-                        'term' => $term,
-                        'tf' => $tf,
-                        'idf' => round($idf[$term], 4),
-                        'tfidf' => round($tfidf, 4),
-                        'rarity' => $idf_details[$term]['docs_with_term'] === 1 ? 'Very Rare' : 
-                                   ($idf_details[$term]['docs_with_term'] <= 3 ? 'Rare' : 'Common')
-                    );
-                }
+                $tf = isset($term_freqs[$term]) ? $term_freqs[$term] : 0;
+                $tfidf = $tf * $idf[$term];
+                $score += $tfidf;
+                $term_calculations[] = array(
+                    'term' => $term,
+                    'tf' => $tf,
+                    'idf' => round($idf[$term], 4),
+                    'tfidf' => round($tfidf, 4),
+                    'rarity' => $idf_details[$term]['docs_with_term'] === 1 ? 'Very Rare' : 
+                               ($idf_details[$term]['docs_with_term'] <= 3 ? 'Rare' : 'Common')
+                );
             }
             
             if ($score > 0) {
@@ -252,17 +285,23 @@ class FTS_Teaching_Plugin {
     }
     
     private function search_bm25($query, $k1 = 1.5, $b = 0.75) {
-        $terms = array_map('strtolower', explode(' ', $query));
+        $terms = $this->normalize_query_terms($query);
         $scores = array();
         $total_docs = count($this->documents);
         
         // Calculate document lengths and average
         $doc_lengths = array();
         $total_length = 0;
+        $doc_stats = array();
         foreach ($this->documents as $doc) {
-            $length = str_word_count($doc['title'] . ' ' . $doc['content']);
+            $tokens = $this->tokenize_text($doc['title'] . ' ' . $doc['content']);
+            $length = count($tokens);
             $doc_lengths[$doc['id']] = $length;
             $total_length += $length;
+            $doc_stats[$doc['id']] = array(
+                'tokens' => $tokens,
+                'term_freqs' => array_count_values($tokens)
+            );
         }
         $avg_length = $total_length / $total_docs;
         
@@ -273,8 +312,7 @@ class FTS_Teaching_Plugin {
         foreach ($terms as $term) {
             $docs_with_term = 0;
             foreach ($this->documents as $doc) {
-                $content = strtolower($doc['title'] . ' ' . $doc['content']);
-                if (strpos($content, $term) !== false) {
+                if (!empty($doc_stats[$doc['id']]['term_freqs'][$term])) {
                     $docs_with_term++;
                 }
             }
@@ -290,29 +328,28 @@ class FTS_Teaching_Plugin {
         
         // Calculate BM25 scores
         foreach ($this->documents as $doc) {
-            $content = strtolower($doc['title'] . ' ' . $doc['content']);
             $doc_length = $doc_lengths[$doc['id']];
+            $term_freqs = $doc_stats[$doc['id']]['term_freqs'];
             $score = 0;
             $term_calculations = array();
+            $norm = 1 - $b + $b * ($doc_length / $avg_length);
             
             foreach ($terms as $term) {
-                $tf = substr_count($content, $term);
-                if ($tf > 0) {
-                    // BM25 term frequency saturation
-                    $norm = 1 - $b + $b * ($doc_length / $avg_length);
-                    $denominator = $tf + $k1 * $norm;
-                    $term_score = $idf[$term] * ($tf * ($k1 + 1)) / $denominator;
-                    $score += $term_score;
-                    
-                    $term_calculations[] = array(
-                        'term' => $term,
-                        'raw_tf' => $tf,
-                        'idf' => round($idf[$term], 4),
-                        'length_norm' => round($norm, 4),
-                        'saturated_tf' => round(($tf * ($k1 + 1)) / $denominator, 4),
-                        'term_score' => round($term_score, 4)
-                    );
-                }
+                $tf = isset($term_freqs[$term]) ? $term_freqs[$term] : 0;
+                // BM25 term frequency saturation
+                $denominator = $tf + $k1 * $norm;
+                $saturated_tf = $denominator > 0 ? ($tf * ($k1 + 1)) / $denominator : 0;
+                $term_score = $idf[$term] * $saturated_tf;
+                $score += $term_score;
+                
+                $term_calculations[] = array(
+                    'term' => $term,
+                    'raw_tf' => $tf,
+                    'idf' => round($idf[$term], 4),
+                    'length_norm' => round($norm, 4),
+                    'saturated_tf' => round($saturated_tf, 4),
+                    'term_score' => round($term_score, 4)
+                );
             }
             
             if ($score > 0) {
@@ -331,6 +368,7 @@ class FTS_Teaching_Plugin {
                         ),
                         'avg_doc_length' => round($avg_length, 2),
                         'this_doc_length' => $doc_length,
+                        'doc_length' => $doc_length,
                         'idf_summary' => $idf_details,
                         'term_calculations' => $term_calculations,
                         'total_score' => round($score, 4),
