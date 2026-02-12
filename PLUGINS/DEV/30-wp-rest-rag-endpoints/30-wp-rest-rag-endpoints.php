@@ -213,6 +213,26 @@ class WP_REST_RAG_Endpoints {
         $index_exists = $this->check_fulltext_index();
 
         ?>
+        <style>
+            .rag-card {
+                width: 95%;
+                font-size: 1.25em;
+                margin-top: 20px;
+                background: #fff;
+                border: 1px solid #c3c4c7;
+                padding: 20px;
+                box-shadow: 0 1px 1px rgba(0,0,0,.04);
+            }
+            .rag-card h3{ margin-bottom: -10px; }
+
+            .rag-card h2 {
+                margin-top: 0;
+            }
+            .rag-card code {
+                font-size: 1.5rem;
+         
+            }
+        </style>
         <div class="wrap">
             <h1>WP REST RAG Endpoints</h1>
 
@@ -220,7 +240,7 @@ class WP_REST_RAG_Endpoints {
                 <p></p>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Full-Text Index</h2>
                 <p>The REST full-text search endpoint requires a MySQL full-text index.</p>
                 <p>Status: <strong style="color: <?php echo $index_exists ? 'green' : 'red'; ?>;">
@@ -235,7 +255,7 @@ class WP_REST_RAG_Endpoints {
                 <?php endif; ?>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Test FTS Natural Language Endpoint</h2>
                 <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (natural language mode) with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-search-natural-btn" class="button button-primary">Test FTS Natural</button>
@@ -265,7 +285,7 @@ class WP_REST_RAG_Endpoints {
                 </details>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Test FTS Boolean Endpoint</h2>
                 <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (boolean mode) with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-search-boolean-btn" class="button button-primary">Test FTS Boolean</button>
@@ -295,7 +315,7 @@ class WP_REST_RAG_Endpoints {
                 </details>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Test FTS Query Expansion Endpoint</h2>
                 <p>Test the <code><?php echo RAG_SEARCH_ENDPOINT; ?></code> endpoint (query expansion) with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-search-query-expansion-btn" class="button button-primary">Test FTS Query Expansion</button>
@@ -325,7 +345,7 @@ class WP_REST_RAG_Endpoints {
                 </details>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Test Vector Search Endpoint</h2>
                 <p>Test the <code><?php echo RAG_VECTOR_SEARCH_ENDPOINT; ?></code> endpoint with query "FOAM" and limit 3.</p>
                 <button type="button" id="test-vector-search-btn" class="button button-primary">Test Vector Search</button>
@@ -335,7 +355,7 @@ class WP_REST_RAG_Endpoints {
                 </div>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>Test Hybrid Search Endpoint</h2>
                 <p>Test the <code><?php echo RAG_HYBRID_SEARCH_ENDPOINT; ?></code> endpoint with query "FOAM" and limit 3 (gets 3 from each method, combines and deduplicates).</p>
                 <label for="hybrid-fts-mode" style="display: inline-block; margin-right: 8px;">FTS Mode:</label>
@@ -351,7 +371,7 @@ class WP_REST_RAG_Endpoints {
                 </div>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="rag-card">
                 <h2>REST API Endpoints</h2>
                 <h3>FTS Natural Language</h3>
                 <p>Search using MySQL full-text index (natural language mode):</p>
