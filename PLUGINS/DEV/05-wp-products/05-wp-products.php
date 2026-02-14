@@ -115,7 +115,7 @@ class FTS_Manager {
                                         +wireless -smart<br>
                                         >budget means optional but boost relevance<br>
                             
-                                        <strong>Expansion:</strong> Automatically finds related terms - bluetooth for example with Natural is very strict and only matches "bluetooth", but with expansion it also finds "search engine optimization", "bluetooth tools", "bluetooth plugin", etc.
+                                        <strong>Expansion:</strong> Automatically finds related terms - bluetooth for example with Natural is very strict and only matches "bluetooth", but with expansion it also finds "bluetooth tools", "bluetooth plugin", etc. 'Yoga' is a good example too.
                                     </p>
                                 </td>
                             </tr>
