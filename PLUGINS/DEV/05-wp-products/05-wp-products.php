@@ -96,7 +96,7 @@ class FTS_Manager {
                                     <label for="search-query"><?php echo esc_html__('Search Query', 'fts-manager'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="text" id="search-query" name="search_query" class="large-text" value="SEO" required>
+                                    <input type="text" id="search-query" name="search_query" class="large-text" value="bluetooth" required>
                                 </td>
                             </tr>
                             <tr>
@@ -115,7 +115,7 @@ class FTS_Manager {
                                         +wireless -smart<br>
                                         >budget means optional but boost relevance<br>
                             
-                                        <strong>Expansion:</strong> Automatically finds related terms - SEO for example with Natural is very strict and only matches "SEO", but with expansion it also finds "search engine optimization", "SEO tools", "SEO plugin", etc.
+                                        <strong>Expansion:</strong> Automatically finds related terms - bluetooth for example with Natural is very strict and only matches "bluetooth", but with expansion it also finds "search engine optimization", "bluetooth tools", "bluetooth plugin", etc.
                                     </p>
                                 </td>
                             </tr>
