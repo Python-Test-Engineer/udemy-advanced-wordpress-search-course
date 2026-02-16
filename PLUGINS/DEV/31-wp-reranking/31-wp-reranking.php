@@ -912,6 +912,15 @@ class WP_Reranking_Plugin {
                     color: #374151;
                     line-height: 1.5;
                 }
+                .toplevel_page_wp-reranking .wp-reranking-explain {
+                    font-size: 12px;
+                    color: #475569;
+                    margin-top: 10px;
+                    background: #f8fafc;
+                    border: 1px dashed #e2e8f0;
+                    border-radius: 8px;
+                    padding: 10px;
+                }
                 .toplevel_page_wp-reranking .wp-reranking-sql {
                     margin-top: 20px;
                     background: #ecfeff;
@@ -1052,6 +1061,8 @@ class WP_Reranking_Plugin {
                 $summary_results = isset($output['results']) && is_array($output['results']) ? $output['results'] : array();
                 $summary_count = count($summary_results);
                 $summary_methods = array('FTS' => 0, 'VECTOR' => 0, 'FTS+VECTOR' => 0, 'UNKNOWN' => 0);
+                $summary_fts_weight = isset($output['weights']['fts']) ? (float) $output['weights']['fts'] : 1;
+                $summary_vector_weight = isset($output['weights']['vector']) ? (float) $output['weights']['vector'] : 1;
                 foreach ($summary_results as $summary_item) {
                     $method = isset($summary_item['method']) ? $summary_item['method'] : 'UNKNOWN';
                     if (!isset($summary_methods[$method])) {
@@ -1177,6 +1188,18 @@ class WP_Reranking_Plugin {
                     <h2 class="wp-reranking-section-title">Final Results</h2>
                     <div class="wp-reranking-results">
                         <?php foreach ($output['results'] as $result): ?>
+                            <?php
+                            $normalized_relevance = isset($result['normalized_relevance']) ? (float) $result['normalized_relevance'] : null;
+                            $normalized_similarity = isset($result['normalized_similarity']) ? (float) $result['normalized_similarity'] : null;
+                            $weighted_relevance = isset($result['weighted_relevance'])
+                                ? (float) $result['weighted_relevance']
+                                : ($normalized_relevance !== null ? $normalized_relevance * $summary_fts_weight : 0);
+                            $weighted_similarity = isset($result['weighted_similarity'])
+                                ? (float) $result['weighted_similarity']
+                                : ($normalized_similarity !== null ? $normalized_similarity * $summary_vector_weight : 0);
+                            $title_boost = isset($result['title_boost']) ? (float) $result['title_boost'] : 0;
+                            $combined_score = $weighted_relevance + $weighted_similarity + $title_boost;
+                            ?>
                             <div class="wp-reranking-card">
                                 <h4><?php echo esc_html($result['post_title'] ?? 'Untitled'); ?></h4>
                                 <div class="wp-reranking-meta">
@@ -1198,6 +1221,13 @@ class WP_Reranking_Plugin {
                                     $excerpt = $result['excerpt'] ?? $result['content'] ?? $result['post_content'] ?? '';
                                     echo esc_html($excerpt);
                                     ?>
+                                </div>
+                                <div class="wp-reranking-explain">
+                                    <?php if ($normalized_relevance !== null || $normalized_similarity !== null): ?>
+                                        Ranked #<?php echo esc_html($result['position'] ?? ''); ?> because normalized FTS <?php echo esc_html(number_format($normalized_relevance ?? 0, 4)); ?> × <?php echo esc_html($summary_fts_weight); ?> = <?php echo esc_html(number_format($weighted_relevance, 4)); ?>, normalized Vector <?php echo esc_html(number_format($normalized_similarity ?? 0, 4)); ?> × <?php echo esc_html($summary_vector_weight); ?> = <?php echo esc_html(number_format($weighted_similarity, 4)); ?>, plus title boost <?php echo esc_html(number_format($title_boost, 4)); ?>. Combined score ≈ <?php echo esc_html(number_format($combined_score, 4)); ?>.
+                                    <?php else: ?>
+                                        Ranked by combined normalized scores from FTS and vector search, plus any title match boost.
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
