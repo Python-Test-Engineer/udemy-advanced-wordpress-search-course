@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: ✅ 05 WP PRODUCTS
+ * Plugin Name: ✅ 05 FTS MANAGER
  * Plugin URI: https://example.com/fts-manager
- * Description: Manage MySQL Full Text Search indexes and test queries with relevance rankings for wp_products table.
+ * Description: Manage MySQL Full Text Search indexes and test queries with relevance rankings
  * Version: 1.0.1
- * Author: Craig West
+ * Author: Your Name
  * License: GPL v2 or later
  * Text Domain: fts-manager
  */
@@ -32,7 +32,7 @@ class FTS_Manager {
     public function add_admin_menu() {
         add_menu_page(
             __('Full Text Search', 'fts-manager'),
-            '05 WP PRODUCTS',
+            '05 FTS MANAGER',
             'manage_options',
             'fts-manager',
             array($this, 'render_admin_page'),
@@ -96,7 +96,7 @@ class FTS_Manager {
                                     <label for="search-query"><?php echo esc_html__('Search Query', 'fts-manager'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="text" id="search-query" name="search_query" class="large-text" value="bluetooth" required>
+                                    <input type="text" id="search-query" name="search_query" class="large-text" value="SEO" required>
                                 </td>
                             </tr>
                             <tr>
@@ -115,7 +115,7 @@ class FTS_Manager {
                                         +wireless -smart<br>
                                         >budget means optional but boost relevance<br>
                             
-                                        <strong>Expansion:</strong> Automatically finds related terms - bluetooth for example with Natural is very strict and only matches "bluetooth", but with expansion it also finds "bluetooth tools", "bluetooth plugin", etc. 'Yoga' is a good example too.
+                                        <strong>Expansion:</strong> Automatically finds related terms - SEO for example with Natural is very strict and only matches "SEO", but with expansion it also finds "search engine optimization", "SEO tools", "SEO plugin", etc.
                                     </p>
                                 </td>
                             </tr>
