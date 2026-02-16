@@ -876,6 +876,7 @@ class WP_Reranking_Plugin {
                     border: 1px solid #e5e7eb;
                     border-radius: 12px;
                     padding: 16px;
+                    margin-top:10px;
                     background: #ffffff;
                     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
                 }
@@ -1092,6 +1093,17 @@ class WP_Reranking_Plugin {
                             <span><?php echo esc_html($summary_methods['FTS+VECTOR'] ?? 0); ?></span>
                         </div>
                     </div>
+                </div>
+                <div class="wp-reranking-summary">
+                <br>
+                    <h2>How the Ranking Works</h2>
+                    <ul style="font-size:16px;color:#374151;line-height:1.8;margin-top:8px;">
+                        <li>Blends full-text (FTS) and vector search results into a single ranked list.</li>
+                        <li>Takes the top results from each engine and normalizes scores to a 0‑to‑1 scale.</li>
+                        <li>Applies your chosen weighting (e.g., 3:1 means FTS counts three times as much as vector).</li>
+                        <li>Adds a small boost if the query appears in the title.</li>
+                        <li>The combined score determines the final order—so a post with a lower raw FTS score can still rank higher if its vector score and title boost are strong enough.</li>
+                    </ul>
                 </div>
                 <div class="wp-reranking-sql">
                     <h2>FTS SQL Used</h2>
