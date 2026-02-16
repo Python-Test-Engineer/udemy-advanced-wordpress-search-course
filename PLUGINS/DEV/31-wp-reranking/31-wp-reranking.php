@@ -268,7 +268,7 @@ class WP_Reranking_Plugin {
         if ($explain) {
             $steps[] = array(
                 'step' => 'Trimmed Input Results',
-                'description' => 'Sorted by score and trimmed to per-method limit before normalization.',
+                'description' => 'Each engine (FTS and vector) is sorted by its own score, then only the top N per engine are kept (per-method limit). This ensures we normalize and blend the strongest candidates from each source, rather than letting one engine dominate by returning a huge list.',
                 'fulltext_results' => $fulltext_results,
                 'vector_results' => $vector_results,
                 'per_method_limit' => $per_method_limit
