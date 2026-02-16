@@ -1111,11 +1111,23 @@ class WP_Reranking_Plugin {
                                 </div>
                             <?php endif; ?>
                             <?php if (isset($step['normalized_items']) && is_array($step['normalized_items'])): ?>
+                                <?php
+                                $normalized_has_method = false;
+                                foreach ($step['normalized_items'] as $normalized_item) {
+                                    $normalized_method_value = isset($normalized_item['method']) ? $normalized_item['method'] : 'N/A';
+                                    if (!in_array($normalized_method_value, array('N/A', 'UNKNOWN'), true)) {
+                                        $normalized_has_method = true;
+                                        break;
+                                    }
+                                }
+                                ?>
                                 <table class="wp-reranking-table">
                                     <thead>
                                         <tr>
                                             <th>Post</th>
-                                            <th>Method</th>
+                                            <?php if ($normalized_has_method): ?>
+                                                <th>Method</th>
+                                            <?php endif; ?>
                                             <th>Relevance</th>
                                             <th>Similarity</th>
                                             <th>Norm Relevance</th>
@@ -1129,7 +1141,9 @@ class WP_Reranking_Plugin {
                                         <?php foreach ($step['normalized_items'] as $normalized_item): ?>
                                             <tr>
                                                 <td><?php echo esc_html($normalized_item['post_title'] ?? ($normalized_item['post_id'] ?? 'Unknown')); ?></td>
-                                                <td><?php echo esc_html($normalized_item['method'] ?? 'N/A'); ?></td>
+                                                <?php if ($normalized_has_method): ?>
+                                                    <td><?php echo esc_html($normalized_item['method'] ?? 'N/A'); ?></td>
+                                                <?php endif; ?>
                                                 <td><?php echo esc_html(number_format((float) ($normalized_item['relevance_score'] ?? 0), 4)); ?></td>
                                                 <td><?php echo esc_html(number_format((float) ($normalized_item['similarity_score'] ?? 0), 4)); ?></td>
                                                 <td><?php echo esc_html($normalized_item['normalized_relevance'] ?? ''); ?></td>
@@ -1141,6 +1155,9 @@ class WP_Reranking_Plugin {
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
+                                <?php if ($normalized_has_method): ?>
+                                    <p style="font-size:12px;color:#6b7280;margin-top:8px;">Method shows which engine(s) contributed to the score: FTS = full-text only, VECTOR = vector only, FTS+VECTOR = both.</p>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <?php if (isset($step['fulltext_results'])): ?>
                                 <details>
