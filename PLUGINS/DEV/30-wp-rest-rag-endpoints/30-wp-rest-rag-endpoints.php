@@ -977,7 +977,7 @@ class WP_REST_RAG_Endpoints {
 
         return $dot_product / ($magnitude1 * $magnitude2);
     }
-
+    #region VECTOR 
     /**
      * Perform vector search using cosine similarity
      */
