@@ -1,8 +1,13 @@
 # 14.9 Full-Text Search Functions
 
-Rewritten and formatted by AI
+Edited and formatted by AI for even more readability.
+
+Official docs:
+
+[https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html](https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html)
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [What is Full-Text Search?](#what-is-full-text-search)
 3. [Basic Syntax](#basic-syntax)
@@ -18,6 +23,7 @@ Rewritten and formatted by AI
 Full-text search is a powerful MySQL feature that allows you to search through large amounts of text data efficiently. Unlike simple `LIKE` queries that scan every row, full-text search uses specialized indexes to find relevant matches quickly—even in tables with millions of rows.
 
 **When should you use full-text search?**
+
 - Searching blog posts, articles, or product descriptions
 - Building search functionality for websites
 - Finding relevant documents in large databases
@@ -35,7 +41,7 @@ Traditional LIKE Search:
 ┌───────────────────────────────────────┐
 │ WHERE description LIKE '%database%'   │
 │                                       │
-│ ❌ Scans every single row             │
+│ ❌ Scans every single row            │
 │ ❌ Slow on large tables              │
 │ ❌ No relevance ranking              │
 └───────────────────────────────────────┘
@@ -68,7 +74,7 @@ MATCH(column1, column2, ...) AGAINST('search terms' [mode])
 ├────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                │
 │  SELECT * FROM articles                                                        │
-│  WHERE MATCH(title, content)                                                   │
+│  WHERE MATCH(title, body)                                                   │
 │        AGAINST('machine learning' IN NATURAL LANGUAGE MODE)                    │
 │         │      │                │                │                             │
 │         │      │                │                └─ Search mode (optional)
@@ -89,7 +95,7 @@ MATCH(column1, column2, ...) AGAINST('search terms' [mode])
 
 ## Requirements and Setup
 
-Before you can use full-text search, you need to create a special type of index called a FULLTEXT index.
+Before you can use full-text search, you need to create a special type of index called a FULL-TEXT index.
 
 ### Supported Storage Engines
 
@@ -112,6 +118,7 @@ Before you can use full-text search, you need to create a special type of index 
 ### Supported Column Types
 
 Full-text indexes work only with text columns:
+
 - **CHAR** - Fixed-length strings
 - **VARCHAR** - Variable-length strings (most common)
 - **TEXT** - Large text fields
@@ -119,25 +126,26 @@ Full-text indexes work only with text columns:
 ### Creating a FULLTEXT Index
 
 **Option 1: During table creation**
+
 ```sql
 CREATE TABLE articles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255),
-    content TEXT,
-    author VARCHAR(100),
+    body TEXT,
     FULLTEXT INDEX ft_title_content (title, content)
 );
 ```
 
 **Option 2: Add to existing table**
+
 ```sql
 -- Using ALTER TABLE
 ALTER TABLE articles 
-ADD FULLTEXT INDEX ft_title_content (title, content);
+ADD FULLTEXT INDEX ft_title_content (title, body);
 
 -- Or using CREATE INDEX
 CREATE FULLTEXT INDEX ft_title_content 
-ON articles(title, content);
+ON articles(title, body);
 ```
 
 ### Performance Tip: Loading Data
@@ -166,7 +174,7 @@ MySQL offers three different ways to perform full-text searches, each with its o
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                    Search Mode Comparison                       │
+│                    Search Mode Comparison                      │
 ├──────────────────┬─────────────────────────────────────────────┤
 │                  │                                             │
 │  Natural         │  Simple, human-friendly searching           │
@@ -188,8 +196,6 @@ MySQL offers three different ways to perform full-text searches, each with its o
 └──────────────────┴─────────────────────────────────────────────┘
 ```
 
----
-
 ### Mode 1: Natural Language Search (Default)
 
 This is the simplest and most common mode. It treats your search string as plain text, just like you'd type into Google.
@@ -206,42 +212,44 @@ Most relevant documents appear first
 ```
 
 **Syntax:**
+
 ```sql
 -- These two queries are identical:
 SELECT * FROM articles 
-WHERE MATCH(title, content) AGAINST('machine learning');
+WHERE MATCH(title, body) AGAINST('machine learning');
 
 SELECT * FROM articles 
-WHERE MATCH(title, content) AGAINST('machine learning' IN NATURAL LANGUAGE MODE);
+WHERE MATCH(title, body) AGAINST('machine learning' IN NATURAL LANGUAGE MODE);
 ```
 
 **Features:**
+
 - Double quotes create phrase searches: `"machine learning"` finds that exact phrase
 - Stopwords (common words like "the", "a", "is") are automatically ignored
 - Results are automatically ranked by relevance
 - Simple and user-friendly
 
 **Example Use Case:**
+
 ```sql
 -- Find articles about Python programming
-SELECT title, content, 
-       MATCH(title, content) AGAINST('Python programming') AS relevance
+SELECT title, body, 
+       MATCH(title, body) AGAINST('Python programming') AS relevance
 FROM articles
-WHERE MATCH(title, content) AGAINST('Python programming')
+WHERE MATCH(title, body) AGAINST('Python programming')
 ORDER BY relevance DESC
 LIMIT 10;
 ```
-
----
 
 ### Mode 2: Boolean Search
 
 Boolean mode gives you precise control using special operators. It's like using advanced search filters.
 
 **Syntax:**
+
 ```sql
 SELECT * FROM articles 
-WHERE MATCH(title, content) 
+WHERE MATCH(title, body) 
 AGAINST('+machine +learning -neural' IN BOOLEAN MODE);
 ```
 
@@ -249,7 +257,7 @@ AGAINST('+machine +learning -neural' IN BOOLEAN MODE);
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                   Boolean Search Operators                    │
+│                   Boolean Search Operators                   │
 ├──────────┬───────────────────────────────────────────────────┤
 │ Operator │ Meaning                         │ Example         │
 ├──────────┼─────────────────────────────────┼─────────────────┤
@@ -280,18 +288,20 @@ AGAINST('"machine learning" >Python' IN BOOLEAN MODE)
 ```
 
 **When to use Boolean mode:**
+
 - Advanced search interfaces
 - When users need precise control
-- Filtering out unwanted content
+- Filtering out unwanted body
 - Combining multiple search criteria
 
 ---
 
 ### Mode 3: Query Expansion
 
-Query expansion is like having MySQL help you find related content. It performs the search twice, using results from the first search to improve the second.
+Query expansion is like having MySQL help you find related body. It performs the search twice, using results from the first search to improve the second.
 
 **How it works:**
+
 ```
 Step 1: Search for "SQL"
         ↓
@@ -306,14 +316,15 @@ Step 3: Searches again with expanded terms
 ```
 
 **Syntax:**
+
 ```sql
 -- Both of these work:
 SELECT * FROM articles 
-WHERE MATCH(title, content) 
+WHERE MATCH(title, body) 
 AGAINST('SQL' WITH QUERY EXPANSION);
 
 SELECT * FROM articles 
-WHERE MATCH(title, content) 
+WHERE MATCH(title, body) 
 AGAINST('SQL' IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION);
 ```
 
@@ -342,14 +353,13 @@ Second Pass (Final Results):
 ```
 
 **When to use Query Expansion:**
+
 - "More like this" features
 - When users might not know the best search terms
-- Finding related content
+- Finding related body
 - Exploratory searches
 
 **⚠️ Warning:** Query expansion can sometimes return less relevant results if your initial search matches poor-quality documents. Use with caution.
-
----
 
 ## Practical Examples
 
@@ -433,8 +443,6 @@ WHERE MATCH(title, content) AGAINST('Python')
 ORDER BY relevance DESC;
 ```
 
-
-
 ## Performance Tips
 
 ### Tip 1: Index Creation Timing
@@ -472,8 +480,6 @@ LIMIT 20;
 ```
 
 MySQL calculates relevance scores automatically—use them to show the best matches first!
-
-
 
 ## Important Restrictions
 
@@ -527,11 +533,11 @@ GROUP BY category WITH ROLLUP;
 ### Stopwords
 
 Common words (called "stopwords") are ignored in searches:
+
+
 - Examples: "the", "a", "an", "is", "at", "which"
 - These are filtered out automatically to improve performance
 - You can customize the stopword list if needed
-
-
 
 ## International Language Support
 

@@ -1,8 +1,14 @@
 # 14.9.2 Boolean Full-Text Searches
 
-MySQL can perform boolean full-text searches using the IN BOOLEAN MODE modifier. With this modifier, certain characters have special meaning at the beginning or end of words in the search string. In the following query, the + and - operators indicate that a word must be present or absent, respectively, for a match to occur. Thus, the query retrieves all the rows that contain the word “MySQL” but that do not contain the word “YourSQL”:
+MySQL can perform boolean full-text searches using the IN BOOLEAN MODE modifier. 
 
-```
+With this modifier, certain characters have special meaning at the beginning or end of words in the search string. 
+
+In the following query, the + and - operators indicate that a word must be present or absent, respectively, for a match to occur. 
+
+Thus, the query retrieves all the rows that contain the word “MySQL” but that do not contain the word “YourSQL”:
+
+```sql
 SELECT * FROM articles WHERE MATCH (title,body)
 AGAINST ('+MySQL -YourSQL' IN BOOLEAN MODE);
 ```
@@ -86,15 +92,15 @@ WHERE MATCH(title, body) AGAINST('+MySQL +security >security' IN BOOLEAN MODE);
 
 ## Boolean Operators Summary:
 
-+ - Word MUST be present
-- - Word MUST NOT be present
+- ' + '  Word MUST be present
+- ' - ' Word MUST NOT be present
 (no operator) - Word is optional (increases relevance if present)
-> - Increases word's contribution to relevance
-< - Decreases word's contribution to relevance
-~ - Negates word's contribution (downranks if present)
-* - Wildcard (matches words starting with prefix)
-"..." - Exact phrase match
-() - Group words into subexpressions
+- ' > '  - Increases word's contribution to relevance
+- ' < ' - Decreases word's contribution to relevance
+- ' ~ ' - Negates word's contribution (downranks if present)
+- ' * ' - Wildcard (matches words starting with prefix)
+- " ... " - Exact phrase match
+- () - Group words into subexpressions
 
 InnoDB full-text search does not support the use of the @ symbol in boolean full-text searches. The @ symbol is reserved for use by the @distance proximity search operator.
 
@@ -143,11 +149,17 @@ WHERE MATCH(title, body) AGAINST('"MySQL tutorial" @2' IN BOOLEAN MODE);
 
 The wildcarded word is considered as a prefix that must be present at the start of one or more words. If the minimum word length is 4, a search for '+word +the*' could return fewer rows than a search for '+word +the', because the second query ignores the too-short search term the.
 
-InnoDB uses a variation of the “term frequency-inverse document frequency” (TF-IDF) weighting system to rank a document's relevance for a given full-text search query. The TF-IDF weighting is based on how frequently a word appears in a document, offset by how frequently the word appears in all documents in the collection. In other words, the more frequently a word appears in a document, and the less frequently the word appears in the document collection, the higher the document is ranked.
+InnoDB uses a variation of the “term frequency-inverse document frequency” (TF-IDF) weighting system to rank a document's relevance for a given full-text search query. 
+
+The TF-IDF weighting is based on how frequently a word appears in a document, offset by how frequently the word appears in all documents in the collection. 
+
+In other words, the more frequently a word appears in a document, and the less frequently the word appears in the document collection, the higher the document is ranked.
 
 ## How Relevancy Ranking is Calculated
 
-The term frequency (TF) value is the number of times that a word appears in a document. The inverse document frequency (IDF) value of a word is calculated using the following formula, where total_records is the number of records in the collection, and matching_records is the number of records that the search term appears in.
+The term frequency (TF) value is the number of times that a word appears in a document. 
+
+The inverse document frequency (IDF) value of a word is calculated using the following formula, where total_records is the number of records in the collection, and matching_records is the number of records that the search term appears in.
 
 ```
 ${IDF} = log10( ${total_records} / ${matching_records} )
@@ -210,7 +222,11 @@ FROM articles ORDER BY score DESC;
 8 rows in set (0.00 sec)
 ```
 
-There are 8 records in total, with 3 that match the “database” search term. The first record (id 6) contains the search term 6 times and has a relevancy ranking of 1.0886961221694946. This ranking value is calculated using a TF value of 6 (the “database” search term appears 6 times in record id 6) and an IDF value of 0.42596873216370745, which is calculated as follows (where 8 is the total number of records and 3 is the number of records that the search term appears in):
+There are 8 records in total, with 3 that match the “database” search term. 
+
+The first record (id 6) contains the search term 6 times and has a relevancy ranking of 1.0886961221694946. 
+
+This ranking value is calculated using a TF value of 6 (the “database” search term appears 6 times in record id 6) and an IDF value of 0.42596873216370745, which is calculated as follows (where 8 is the total number of records and 3 is the number of records that the search term appears in):
 
 ```
 ${IDF} = LOG10( 8 / 3 ) = 0.42596873216370745
@@ -235,9 +251,12 @@ SELECT 6*LOG10(8/3)*LOG10(8/3);
 
 Note
 
-You may notice a slight difference in the ranking values returned by the SELECT ... MATCH ... AGAINST statement and the MySQL command-line client (1.0886961221694946 versus 1.088696164686938). The difference is due to how the casts between integers and floats/doubles are performed internally by InnoDB (along with related precision and rounding decisions), and how they are performed elsewhere, such as in the MySQL command-line client or other types of calculators.
+You may notice a slight difference in the ranking values returned by the SELECT ... MATCH ... AGAINST statement and the MySQL command-line client (1.0886961221694946 versus 1.088696164686938). 
+
+The difference is due to how the casts between integers and floats/doubles are performed internally by InnoDB (along with related precision and rounding decisions), and how they are performed elsewhere, such as in the MySQL command-line client or other types of calculators.
 
 ## Relevancy Ranking for a Multiple Word Search
+
 This example demonstrates the relevancy ranking calculation for a multiple-word full-text search based on the articles table and data used in the previous example.
 
 If you search on more than one word, the relevancy ranking value is a sum of the relevancy ranking value for each word, as shown in this formula:
@@ -268,24 +287,5 @@ FROM articles ORDER BY score DESC;
 +----+------------------------------+-------------------------------------+----------------------+
 8 rows in set (0.00 sec)
 ```
-
-In the first record (id 8), 'mysql' appears once and 'tutorial' appears twice. There are six matching records for 'mysql' and two matching records for 'tutorial'. The MySQL command-line client returns the expected ranking value when inserting these values into the ranking formula for a multiple word search:
-
-```sql
-SELECT (1*log10(8/6)*log10(8/6)) + (2*log10(8/2)*log10(8/2));
-```
-
-```
-+-------------------------------------------------------+
-| (1*log10(8/6)*log10(8/6)) + (2*log10(8/2)*log10(8/2)) |
-+-------------------------------------------------------+
-|                                    0.7405621541938003 |
-+-------------------------------------------------------+
-1 row in set (0.00 sec)
-```
-
-### Note
-
-The slight difference in the ranking values returned by the SELECT ... MATCH ... AGAINST statement and the MySQL command-line client is explained in the preceding example.
 
 <br>

@@ -2,26 +2,34 @@
 
 ## Introduction
 
-Full-Text Search (FTS) in MySQL allows you to efficiently search text content in your database. While the default settings work well for most applications, MySQL provides several configuration options to optimize search behavior for your specific needs.
+Full-Text Search (FTS) in MySQL allows you to efficiently search text content in your database. 
 
-**Important Note:** MySQL's FTS is already well-tuned out of the box. Only modify these settings if you have a specific reason and understand the implications. Most changes require rebuilding your FULLTEXT indexes and restarting the server.
+While the default settings work well for most applications, MySQL provides several configuration options to optimize search behavior for your specific needs.
+
+**Important Note:** 
+
+MySQL's FTS is already well-tuned out of the box. Only modify these settings if you have a specific reason and understand the implications. Most changes require rebuilding your FULLTEXT indexes and restarting the server.
 
 ## 1. Word Length Configuration
 
 ### What It Does
+
 Controls which words get indexed based on their length. By default, very short words (like "a", "in") and extremely long words are excluded from the index.
 
 ### Configuration Variables
 
 **For InnoDB tables:**
+
 - `innodb_ft_min_token_size` - Minimum word length (default: 3)
 - `innodb_ft_max_token_size` - Maximum word length (default: 84)
 
 **For MyISAM tables:**
+
 - `ft_min_word_len` - Minimum word length (default: 4)
 - `ft_max_word_len` - Maximum word length (default: 84)
 
 ### Example Use Case
+
 If you need to search for two-letter words like "AI" or "UK", you'd need to lower the minimum token size.
 
 ### How to Configure
@@ -35,6 +43,7 @@ ft_min_word_len=2
 ```
 
 **Important:** After changing these settings:
+
 1. Restart the MySQL server
 2. Rebuild all FULLTEXT indexes (see Rebuilding Indexes section)
 
@@ -99,16 +108,19 @@ $mysqli->close();
 ## 2. Stopword Configuration
 
 ### What It Does
+
 Stopwords are common words (like "the", "and", "is") that are excluded from the search index because they appear so frequently they're not useful for searching.
 
 ### Configuration Variables
 
 **For InnoDB:**
+
 - `innodb_ft_enable_stopword` - Enable/disable stopword filtering (default: ON)
 - `innodb_ft_server_stopword_table` - Custom server-level stopword table
 - `innodb_ft_user_stopword_table` - Custom session-level stopword table
 
 **For MyISAM:**
+
 - `ft_stopword_file` - Path to custom stopword file
 
 ### Example Use Case
@@ -188,12 +200,15 @@ $mysqli->close();
 ## 3. Natural Language Search Threshold (MyISAM Only)
 
 ### What It Does
+
 By default, MyISAM ignores words that appear in more than 50% of rows. This prevents common words from dominating search results.
 
 ### Why This Exists
+
 If a word appears in more than half your documents, it's not useful for distinguishing between documents.
 
 ### Example
+
 If you have 1000 articles and the word "MySQL" appears in 600 of them, natural language search will ignore "MySQL" in queries.
 
 ### PHP Example - Understanding the 50% Threshold
@@ -235,6 +250,7 @@ $mysqli->close();
 ### PHP Example - Using Boolean Mode to Bypass Threshold
 
 **Option 1: Boolean Mode Search** (Recommended)
+
 Boolean mode doesn't apply the 50% threshold:
 
 ```php
@@ -272,9 +288,11 @@ $mysqli->close();
 ## 4. Boolean Search Operators (MyISAM Only)
 
 ### What It Does
+
 Allows you to customize the operators used in Boolean full-text searches.
 
 ### Default Operators
+
 - `+` - Word must be present (AND)
 - `-` - Word must not be present (NOT)
 - `>` - Increase word's relevance
@@ -285,6 +303,7 @@ Allows you to customize the operators used in Boolean full-text searches.
 - `""` - Phrase search (exact match)
 
 ### Configuration Variable
+
 `ft_boolean_syntax` - Can be changed at runtime (no restart needed)
 
 ### PHP Example - Viewing Current Boolean Syntax
@@ -372,20 +391,25 @@ $mysqli->close();
 ## 5. Character Set Modifications
 
 ### What It Does
+
 Defines which characters are considered "word characters" versus delimiters. By default, hyphens and most punctuation split words.
 
 ### Example Problem
+
 By default, "full-text" is treated as two words: "full" and "text". If you want to treat hyphens as part of words, you need to modify the character set configuration.
 
 ### Three Methods to Modify
 
 #### Method 1: Modify MySQL Source Code (Advanced)
+
 Edit `storage/innobase/handler/ha_innodb.cc` (InnoDB) or `storage/myisam/ftdefs.h` (MyISAM) and recompile MySQL.
 
 #### Method 2: Modify Character Set XML Files (No Recompilation)
+
 Edit the character set definition files to include additional characters as "letters".
 
 #### Method 3: Add Custom Collation (Recommended)
+
 Create a new collation for full-text indexing with custom character definitions.
 
 ### PHP Example - Working with Hyphenated Words
@@ -429,9 +453,11 @@ $mysqli->close();
 ## 6. Optimizing InnoDB Full-Text Indexes
 
 ### What It Does
+
 Removes deleted Document IDs and consolidates multiple entries for the same word, improving search performance.
 
 ### When to Optimize
+
 - After bulk DELETE operations
 - After many INSERT/UPDATE operations
 - Periodically for maintenance
@@ -484,12 +510,13 @@ $mysqli->query("SET GLOBAL innodb_optimize_fulltext_only = OFF");
 
 $mysqli->close();
 ?>
-``
+```
 
 ## 7. Rebuilding Full-Text Indexes
 
 ### When to Rebuild
 You must rebuild FULLTEXT indexes after changing:
+
 - `innodb_ft_min_token_size` or `ft_min_word_len`
 - `innodb_ft_max_token_size` or `ft_max_word_len`
 - `innodb_ft_server_stopword_table` or `innodb_ft_user_stopword_table`
@@ -762,7 +789,7 @@ echo "</div>";
 
 $mysqli->close();
 ?>
-``
+```
 
 ## 9. Common Issues and Solutions
 
@@ -818,6 +845,7 @@ $mysqli->query("SET GLOBAL innodb_optimize_fulltext_only = OFF");
 ## 10. Best Practices
 
 ### 1. Always Use Prepared Statements
+
 ```php
 // ✓ GOOD - Protected against SQL injection
 $stmt = $mysqli->prepare("SELECT * FROM articles 
@@ -831,6 +859,7 @@ $sql = "SELECT * FROM articles
 ```
 
 ### 2. Sanitize Boolean Operators from User Input
+
 ```php
 function sanitizeBooleanQuery($query) {
     // Remove potentially problematic characters
@@ -843,6 +872,7 @@ $user_query = sanitizeBooleanQuery($_GET['q']);
 ```
 
 ### 3. Add Minimum Query Length
+
 ```php
 function search($query) {
     // Require at least 2 characters
@@ -855,6 +885,7 @@ function search($query) {
 ```
 
 ### 4. Cache Search Results
+
 ```php
 function cachedSearch($mysqli, $query, $cache_time = 300) {
     $cache_key = 'search_' . md5($query);
@@ -881,6 +912,7 @@ function cachedSearch($mysqli, $query, $cache_time = 300) {
 ```
 
 ### 5. Log Slow Queries
+
 ```php
 function logSlowQuery($query, $execution_time) {
     if ($execution_time > 1.0) { // Log queries taking more than 1 second
@@ -919,11 +951,13 @@ Configuration changes that don't require restart:
 
 ## Resources
 
-- MySQL 8.4 Full-Text Search Documentation: https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html
-- MySQL 8.4 Fine-Tuning Guide: https://dev.mysql.com/doc/refman/8.4/en/fulltext-fine-tuning.html
-- InnoDB Full-Text Indexes: https://dev.mysql.com/doc/refman/8.4/en/innodb-fulltext-index.html
+- MySQL 8.4 Full-Text Search Documentation: [https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html](https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html)
+- MySQL 8.4 Fine-Tuning Guide: [https://dev.mysql.com/doc/refman/8.4/en/fulltext-fine-tuning.html](https://dev.mysql.com/doc/refman/8.4/en/fulltext-fine-tuning.html)
+- InnoDB Full-Text Indexes: [https://dev.mysql.com/doc/refman/8.4/en/innodb-fulltext-index.html](https://dev.mysql.com/doc/refman/8.4/en/innodb-fulltext-index.html)
 
 
-**Remember:** Full-text search is powerful, but it's not a replacement for specialized search engines like Elasticsearch or Solr for very large datasets or complex search requirements. Use FTS for moderate-sized applications where you want search functionality without additional infrastructure.
+**Remember:** 
+
+Full-text search is powerful, but it's not a replacement for specialized search engines like Elasticsearch or Solr for very large datasets or complex search requirements. Use FTS for moderate-sized applications where you want search functionality without additional infrastructure.
 
 <br>

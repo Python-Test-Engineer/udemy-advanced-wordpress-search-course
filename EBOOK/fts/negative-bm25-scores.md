@@ -1,6 +1,6 @@
 # Understanding BM25 Scores: 
 
-Why Negative Numbers Are Totally Normal
+Why Negative Numbers Are Totally Normal.
 
 
 ## Opening Intuition: What Is BM25 Trying to Do?
@@ -10,6 +10,7 @@ BM25 is a **relevance scoring function**. Its job is simple:
 > **Given a query, how relevant is each document?**
 
 But BM25 doesn’t care about absolute numbers.  
+
 It only cares about **relative ranking**.
 
 Think of BM25 like a judge in a talent show:
@@ -19,31 +20,34 @@ Think of BM25 like a judge in a talent show:
 
 This is why **negative scores are not a problem** — they’re just part of the math.
 
-
 ## Negative Scores Are Normal
 
 BM25 scores can be **positive, negative, or zero**.  
+
 The only rule that matters:
 
 > **Higher scores = better matches (even if they’re negative)**
 
-This is the part that confuses beginners, so emphasize it early and often.
+This is can be confusing initially.
 
 ## Interpreting BM25 Scores
 
 ### Positive Scores
+
 These happen when the query terms are **rare** across your collection.
 
 - Rare terms → high IDF → positive BM25  
 - Example: Searching for “quantum” in a blog collection
 
 ### Negative Scores  
+
 These happen when the query terms are **very common**.
 
 - Common terms → negative IDF → negative BM25  
 - Example: Searching for “the” or “programming”
 
 ### Zero Scores 
+
 These happen when:
 
 - The document contains **none** of the query terms  
@@ -96,27 +100,33 @@ Ranking:
 
 Even though Doc 2 has a negative score, it’s still the **best match**.
 
+Zero values as in Doc 3 are filtered out even though 0 > negative number.
 
 ## When You’ll See Each Score Type
 
 ### Positive Scores
+
 - Rare terms  
 - Technical vocabulary  
 - Small document sets  
 
 ### Negative Scores
+
 - Common words  
 - Terms appearing in most documents  
 - Broad/general vocabulary  
 
 ### Zero Scores
+
 - No matching terms  
 - Completely unrelated content  
 
 ## Practical Experiments 
 
 ### 1. Positive Score Experiment
+
 Documents:  
+
 - “Python is great”  
 - “Java is fast”  
 - “C++ is powerful”  
@@ -124,7 +134,9 @@ Documents:
 Query: **python** → positive score
 
 ### 2. Negative Score Experiment
+
 Documents:  
+
 - “Programming in Python”  
 - “Programming in Java”  
 - “Programming in C++”  
@@ -134,6 +146,7 @@ Query: **programming** → negative scores
 ### 3. Zero Score Experiment
 
 Documents:  
+
 - “Python programming”  
 - “Java coding”  
 - “C++ development”  
@@ -142,9 +155,9 @@ Query: **cooking recipes** → zero
 
 ## BM25 vs TF‑IDF 
 
-Students often ask this, so it’s worth adding:
+Developers often ask this, so it’s worth adding:
 
-|     Feature     |       TF‑I       |               BM2               |
+|     Feature     |       TF‑IDF     |               BM25              |
 |-----------------|------------------|---------------------------------|
 | Term frequency  | Linear           | Saturates (diminishing returns) |
 | Document length | Not handled well | Normalized                      |

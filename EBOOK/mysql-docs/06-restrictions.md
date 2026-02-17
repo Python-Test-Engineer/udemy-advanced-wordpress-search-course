@@ -12,11 +12,13 @@ Full-text search in MySQL has several important limitations and restrictions you
 ## Storage Engine Limitations
 
 ### Supported Engines
+
 - **InnoDB** - Fully supported ✓
 - **MyISAM** - Fully supported ✓
 - **All other engines** - Not supported ✗
 
 ### Partitioned Tables
+
 Full-text searches are **not supported** on partitioned tables. If you need partitioning, you cannot use FULLTEXT indexes on those tables.
 
 
@@ -25,6 +27,7 @@ Full-text searches are **not supported** on partitioned tables. If you need part
 ### Supported Character Sets
 
 **Unicode Support:**
+
 - **utf8mb3** - Supported ✓
 - **utf8mb4** - Supported ✓
 - **ucs2** - Not supported for FULLTEXT indexes ✗
@@ -33,11 +36,13 @@ Full-text searches are **not supported** on partitioned tables. If you need part
 - **utf32** - Not supported for FULLTEXT indexes ✗
 
 **Important Exception:**
+
 You can perform `IN BOOLEAN MODE` searches on ucs2 columns even without a FULLTEXT index, though performance will be slower.
 
 ### Same Character Set Required
 
 All columns in a single FULLTEXT index must use:
+
 - The same character set
 - The same collation
 
@@ -51,6 +56,7 @@ You cannot mix different character sets within one FULLTEXT index.
 Languages like Chinese, Japanese, and Korean (CJK) don't use spaces to separate words. This creates problems for the built-in full-text parser, which relies on word delimiters.
 
 **Example:**
+
 ```
 English:   "machine learning tutorial"  (clear word boundaries)
 Chinese:   "机器学习教程"                  (no spaces between concepts)
@@ -61,11 +67,13 @@ Chinese:   "机器学习教程"                  (no spaces between concepts)
 MySQL provides specialized parsers for these languages:
 
 **1. ngram Parser (Character-based)**
+
 - Supports: Chinese, Japanese, Korean
 - Works with: InnoDB and MyISAM
 - Approach: Breaks text into fixed-length character sequences
 
 **2. MeCab Parser (Word-based)**
+
 - Supports: Japanese only
 - Works with: InnoDB and MyISAM
 - Approach: Uses dictionary-based word segmentation
@@ -136,6 +144,7 @@ GROUP BY category WITH ROLLUP;
 Index hints (like `USE INDEX`, `FORCE INDEX`, `IGNORE INDEX`) are more limited with FULLTEXT searches compared to regular indexes.
 
 **What this means:**
+
 You have less control over query optimization when using full-text searches. MySQL's query optimizer makes most decisions automatically.
 
 
@@ -146,6 +155,7 @@ You have less control over query optimization when using full-text searches. MyS
 For InnoDB tables, full-text index updates happen when transactions commit, not immediately.
 
 **How it works:**
+
 ```
 1. You INSERT a row with text
    ↓
@@ -191,6 +201,7 @@ WHERE MATCH(title) AGAINST('machine*' IN BOOLEAN MODE)
 ```
 
 **Available Wildcard:**
+
 Only the asterisk (`*`) works as a wildcard in `IN BOOLEAN MODE`:
 
 ```sql
@@ -203,9 +214,9 @@ WHERE MATCH(content) AGAINST('machin*' IN BOOLEAN MODE)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Common Mistakes to Avoid                      │
+│                    Common Mistakes to Avoid                     │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │ ✗ Using with partitioned tables                                 │
 │ ✗ Mixing character sets in one FULLTEXT index                   │
 │ ✗ MATCH() columns not matching an index exactly                 │
@@ -213,7 +224,7 @@ WHERE MATCH(content) AGAINST('machin*' IN BOOLEAN MODE)
 │ ✗ Using '%' as a wildcard                                       │
 │ ✗ Expecting uncommitted data to be searchable (InnoDB)          │
 │ ✗ Using ucs2/utf16/utf32 without understanding the limitations  │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

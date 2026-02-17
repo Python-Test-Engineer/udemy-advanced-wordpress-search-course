@@ -1,15 +1,20 @@
 # ANN and HNSW  
 
 ## What is Approximate Nearest Neighbor (ANN)?
-ANN is a fast method for finding vectors that are *close enough* to a query point — without scanning the entire database. It’s widely used in search engines, recommendation systems, and vector databases.
+
+![border](../images/vectors/ann-nearest-neighbour-slide.png)
+
+ANN is a fast method for finding vectors that are *close enough* to a query point — without scanning the entire database. 
+
+It’s widely used in search engines, recommendation systems, and vector databases.
 
 Instead of checking every vector, ANN algorithms:
+
 - Divide the space into **partitions** (like clusters or cells)
 - Search only within the partition where the query lands
 - Return the closest match *within that partition*
 
 This makes ANN fast — but not always accurate.
-
 
 When you run vector search, you’re essentially asking:
 
@@ -24,11 +29,13 @@ That’s where **ANN** comes in.
 ## What ANN Does  
 
 ANN algorithms **don’t search every vector**.  
+
 Instead, they use clever indexing structures to find vectors that are *very close* to the true nearest neighbours — but **much faster**.
 
 You trade **tiny accuracy loss** for **massive speed gains**.
 
 ## ANN in Practice  
+
 Most vector databases use ANN under the hood:
 
 ```
@@ -47,27 +54,31 @@ If you use any of these with WordPress, you’re already using ANN — even if y
 ### The Border Problem
 
 When a query lands **near the edge of a partition**, ANN might:
+
 - Search only inside its assigned partition (e.g. Partition A)
 - Return a vector that’s farther away
 - **Miss closer vectors** in a neighboring partition (e.g. Partition B)
 
 
 ### Why It Matters
+
 This border issue can cause:
+
 - Lower recall (missing relevant results)
 - Poor recommendations or search matches
 - Confusion in edge cases (e.g. similar products or documents)
 
 
 ### How to Fix It
+
 Advanced techniques like:
+
 - **Multi-probe search** (check nearby partitions)
 - **Reranking** (re-evaluate top candidates)
 - **HNSW graphs** (link across partitions)
 
 …can reduce border errors and improve accuracy.
 
-![border](../images/vectors/ann-nearest-neighbour-slide.png)
 
 ##  Hierarchical Navigable Small World (HNSW)
 
@@ -85,8 +96,6 @@ It’s used because it’s:
 - memory‑efficient  
 - easy to tune  
 
-
-
 ## The Core Idea 
 
 Imagine your vectors are cities on a map.
@@ -94,17 +103,20 @@ Imagine your vectors are cities on a map.
 HNSW builds **multiple layers of roads**:
 
 ### Layer 0 (bottom layer)
+
 - Dense local roads  
 - Every vector is connected to many neighbours  
 - Great for fine‑grained accuracy  
 - Slow if used alone  
 
 ### Layer 1, 2, 3… (upper layers)
+
 - Sparse highways  
 - Only a few long‑distance connections  
 - Great for fast navigation  
 
 ### How search works  
+
 1. Start at the **top layer** (few nodes → fast).  
 2. Move toward the query vector using long‑distance links.  
 3. Drop down a layer.  
@@ -123,12 +135,15 @@ This structure gives you:
 ## Why HNSW Matters for WordPress Developers
 
 ### 1. It makes semantic search fast enough for real‑time use*
+
 Even with **hundreds of thousands** of posts or products.
 
 ### 2. It’s the default in most vector DBs  
+
 If you use Pinecone, Qdrant, Weaviate, or Milvus — you’re using HNSW.
 
 ### 3. It’s ideal for WordPress workloads
+
 WordPress content is:
 
 - short  
@@ -139,6 +154,7 @@ WordPress content is:
 HNSW handles this beautifully.
 
 ### 4. It works well with PHP APIs
+
 You can:
 
 - embed content in PHP  

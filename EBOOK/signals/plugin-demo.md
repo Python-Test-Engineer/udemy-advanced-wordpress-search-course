@@ -10,6 +10,4 @@ These can then be use in ML.
 
 We can also add a user feed back of a search result the user clicked to see if it was helpful and comments.
 
-![signals](../images/06-signals.png)
-
 <br>

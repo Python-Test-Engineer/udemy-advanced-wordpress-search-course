@@ -25,6 +25,7 @@ ADD FULLTEXT INDEX idx_product_search(product_name, description);
 ```
 
 **Important Notes:**
+
 - FULLTEXT indexes only work with InnoDB (MySQL 5.6+) and MyISAM engines
 - Can be created on CHAR, VARCHAR, or TEXT columns
 - Multiple columns can be included in a single FULLTEXT index
@@ -32,8 +33,6 @@ ADD FULLTEXT INDEX idx_product_search(product_name, description);
 ## The Three Search Modes
 
 MySQL offers three full text search modes, each with different behaviors and use cases.
-
----
 
 ## 1. Natural Language Mode (Default)
 
@@ -105,8 +104,6 @@ LIMIT 10;
 - **Minimum Word Length**: Default is 4 characters (configurable via `ft_min_word_len`)
 - **Case Insensitive**: Searches are not case-sensitive
 - **No Operators**: Cannot use boolean operators like +, -, *
-
----
 
 ## 2. Boolean Mode
 
@@ -229,8 +226,6 @@ ORDER BY score DESC;
 - **Minimum Length Still Applies**: Words must meet minimum length requirement
 - **Can Search Without Index**: Boolean mode works even without FULLTEXT index (but much slower)
 
----
-
 ## 3. Query Expansion Mode
 
 Query expansion performs a two-pass search: first finds relevant documents, then searches again using terms from those documents to find more results.
@@ -329,8 +324,6 @@ LIMIT 5;
 - **Performance Impact**: Slower than other modes (two-pass search)
 - **Best for Short Queries**: Works well with 1-3 word searches
 - **Blind Expansion**: Uses terms even if not semantically related
-
----
 
 ## Comparison Table
 
@@ -433,11 +426,10 @@ ORDER BY similarity DESC
 LIMIT 5;
 ```
 
----
-
 ## Performance Tips
 
 ### 1. Index Strategy
+
 ```sql
 -- Index only columns you'll search together
 CREATE FULLTEXT INDEX idx_product_name ON products(product_name);
@@ -445,6 +437,7 @@ CREATE FULLTEXT INDEX idx_product_full ON products(product_name, description);
 ```
 
 ### 2. Use MATCH in WHERE and ORDER BY
+
 ```sql
 -- Efficient: Reuse MATCH calculation
 SELECT product_name,
@@ -455,6 +448,7 @@ ORDER BY score DESC;
 ```
 
 ### 3. Limit Results
+
 ```sql
 -- Always use LIMIT for better performance
 SELECT product_name
@@ -474,13 +468,12 @@ LIMIT 50;
 -- REPAIR TABLE products QUICK;
 ```
 
----
-
 ## Common Pitfalls and Solutions
 
 ### Problem: No Results Found
 
 **Cause**: Word too short (< 4 characters by default)
+
 ```sql
 -- Won't work with default settings
 WHERE MATCH(product_name) AGAINST('USB' IN BOOLEAN MODE)
@@ -492,6 +485,7 @@ WHERE MATCH(product_name) AGAINST('USB*' IN BOOLEAN MODE)
 ### Problem: Common Words Ignored
 
 **Cause**: Word appears in >50% of rows (Natural Language Mode)
+
 ```sql
 -- "the" might be ignored
 WHERE MATCH(post_content) AGAINST('the best laptop')
@@ -503,6 +497,7 @@ WHERE MATCH(post_content) AGAINST('+best +laptop' IN BOOLEAN MODE)
 ### Problem: Slow Queries
 
 **Cause**: Not using FULLTEXT index properly
+
 ```sql
 -- Slow: MATCH columns don't match index
 CREATE FULLTEXT INDEX idx ON products(product_name);
@@ -515,6 +510,7 @@ WHERE MATCH(product_name) AGAINST('laptop');
 ### Problem: Special Characters Ignored
 
 **Cause**: MySQL treats special chars as word separators
+
 ```sql
 -- "C++" becomes "C"
 WHERE MATCH(post_content) AGAINST('C++')
@@ -522,8 +518,6 @@ WHERE MATCH(post_content) AGAINST('C++')
 -- Solution: Use exact phrase in Boolean Mode
 WHERE MATCH(post_content) AGAINST('"C++"' IN BOOLEAN MODE)
 ```
-
----
 
 ## Configuration Variables
 
@@ -541,23 +535,24 @@ SHOW VARIABLES LIKE 'ft%';
 -- innodb_ft_min_token_size: InnoDB minimum word length (default: 3)
 ```
 
----
-
 ## Summary
 
 **Use Natural Language Mode when:**
+
 - You want automatic relevance ranking
 - Searching general content (blog posts, articles)
 - Users enter natural search queries
 - Simplicity is important
 
 **Use Boolean Mode when:**
+
 - You need precise control over search terms
 - Implementing advanced search features
 - Handling technical content with abbreviations
 - Users are power users who understand operators
 
 **Use Query Expansion when:**
+
 - Finding related content ("You might also like")
 - User search terms are very specific but you want broad results
 - Building discovery features

@@ -34,10 +34,12 @@ IDF(qi)
 **Why it matters:** Rare words are more informative. If you search for "php tutorial" the word "php" is more valuable than "the" or "a".
 
 **How it works:**
+
 - Words appearing in few documents get high IDF scores (more valuable)
 - Words appearing in many documents get low IDF scores (less valuable)
 
 **Simple formula:**
+
 ```
 IDF(qi) = log((N - n(qi) + 0.5) / (n(qi) + 0.5))
 ```
@@ -51,13 +53,17 @@ Where N = total documents, n(qi) = documents containing the term
 
 **What it does:** Measures how often a term appears in the document, with diminishing returns.
 
-**Why it matters:** A word appearing 5 times is more relevant than appearing once. But appearing 100 times isn't 100× more relevant than once—there's a saturation point.
+**Why it matters:** 
+
+A word appearing 5 times is more relevant than appearing once. But appearing 100 times isn't 100× more relevant than once—there's a saturation point.
 
 **The k1 parameter** (typically 1.2 to 2.0):
+
 - Higher k1 = term frequency matters more
 - Lower k1 = faster saturation (repetition matters less)
 
 **Example with k1 = 1.2:**
+
 - Term appears 1 time: score ≈ 0.55
 - Term appears 2 times: score ≈ 0.73
 - Term appears 5 times: score ≈ 0.89
@@ -71,16 +77,22 @@ Notice how the score increases but never exceeds 1.0, and improvements get small
 1 - b + b × (|D| / avgdl)
 ```
 
-**What it does:** Adjusts scores based on document length.
+**What it does:** 
 
-**Why it matters:** Longer documents naturally contain more words, so they might match query terms more often just by being longer, not by being more relevant.
+Adjusts scores based on document length.
+
+**Why it matters:** 
+
+Longer documents naturally contain more words, so they might match query terms more often just by being longer, not by being more relevant.
 
 **The b parameter** (typically 0.75):
+
 - b = 0: Document length doesn't matter at all
 - b = 1: Full length normalization (strongly penalizes long documents)
 - b = 0.75: Balanced approach (standard)
 
 **How it works:**
+
 - If |D| = avgdl (document is average length): factor = 1 (no adjustment)
 - If |D| > avgdl (document is longer): factor > 1 (slight penalty)
 - If |D| < avgdl (document is shorter): factor < 1 (slight boost)
@@ -121,15 +133,18 @@ Assume:
 ### Step 2: Calculate for "tutorial"
 
 Assume:
+
 - f("tutorial", D) = 1
 - IDF("tutorial") = 3.0 (rarer)
 
 **Term frequency component:**
+
 ```
 (1 × 2.2) / (1 + 1.2) = 2.2 / 2.2 = 1.0
 ```
 
 **Combined for "tutorial":**
+
 ```
 3.0 × 1.0 / 0.925 ≈ 3.24
 ```
@@ -155,11 +170,13 @@ This document would score 7.81 for the query "php tutorial".
 ## Tuning Parameters
 
 ### k1 (Term Frequency Saturation)
+
 - **Default:** 1.2
 - **Lower (1.0):** Good for precise queries where repetition matters less
 - **Higher (2.0):** Good when term frequency is highly indicative of relevance
 
 ### b (Length Normalization)
+
 - **Default:** 0.75
 - **Lower (0.5):** Use when document length varies widely but all are relevant
 - **Higher (0.9):** Use when you want to penalize verbose documents more

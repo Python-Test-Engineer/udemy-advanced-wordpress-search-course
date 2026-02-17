@@ -1,13 +1,13 @@
 # Columns with many indexes
 
-You *can*, but it’s almost never useful — and MySQL will happily allow it **as long as each index has a different name**.
+MySQL allows multiple FULLTEXT indexes on the same column(s).
 
-### Short answer
-Yes, MySQL allows multiple FULLTEXT indexes on the same column(s).  
 There’s no technical restriction preventing it.
 
 ### But here’s the catch
-Each FULLTEXT index is a **complete inverted index**.  
+
+Each FULLTEXT index is a **complete inverted index**. 
+ 
 If you duplicate them:
 
 - You double (or triple…) the storage cost  
@@ -26,6 +26,7 @@ ALTER TABLE wp_products ADD FULLTEXT ft_name_3 (product_name);
 …but it’s pointless unless the indexes cover **different column combinations**.
 
 ### When multiple FULLTEXT indexes *do* make sense
+
 Only in these cases:
 
 | Index | Purpose |
@@ -37,6 +38,7 @@ Only in these cases:
 So the *useful* pattern is **different scopes**, not duplicates.
 
 ### Recommendation for your schema
+
 For your WordPress-style product search, the ideal setup is:
 
 - One composite index for the main search  
@@ -46,8 +48,6 @@ For your WordPress-style product search, the ideal setup is:
 MySQL’s index‑selection logic is surprisingly smart, but also very predictable once you know how the optimizer thinks. When multiple indexes *could* be used, MySQL runs a cost‑based decision process to choose the one that will return the result **fastest**.
 
 Here’s a clear breakdown of how it decides.
-
----
 
 ## How MySQL chooses between multiple indexes
 
@@ -63,8 +63,8 @@ MySQL’s optimizer evaluates:
 
 It then picks the lowest‑cost plan.
 
-
 ## FULLTEXT indexes have their own rules
+
 Since you’re working with FULLTEXT, here’s the key insight:
 
 ### If a query uses `MATCH() AGAINST()`, MySQL will ALWAYS choose a FULLTEXT index.
@@ -94,13 +94,13 @@ AGAINST('shoes')
 → uses the composite index only  
 → single‑column indexes are ignored
 
-
 ## Example: You have these indexes
 
 - `FULLTEXT(product_name)`
 - `FULLTEXT(product_name, product_short_description, expanded_description)`
 
 ### Query 1:
+
 ```sql
 SELECT * FROM wp_products
 WHERE MATCH(product_name) AGAINST('red dress');
@@ -110,6 +110,7 @@ WHERE MATCH(product_name) AGAINST('red dress');
 Because it matches the column list exactly.
 
 ### Query 2:
+
 ```sql
 SELECT * FROM wp_products
 WHERE MATCH(product_name, product_short_description, expanded_description)
@@ -117,9 +118,8 @@ WHERE MATCH(product_name, product_short_description, expanded_description)
 ```
 
 **Chosen index:** `FULLTEXT(product_name, product_short_description, expanded_description)`  
-Because it’s the only one that covers all columns.
 
----
+Because it’s the only one that covers all columns.
 
 ## Want to see what MySQL is doing?
 Use:
@@ -135,7 +135,6 @@ EXPLAIN FORMAT=JSON SELECT ...
 ```
 
 This will show exactly which index MySQL picked and why.
-
 
 
 ## Practical advice for your schema

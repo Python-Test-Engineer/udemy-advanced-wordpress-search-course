@@ -21,7 +21,6 @@ FTS and vector search solve different problems:
 
 Reranking lets you use both signals at once.
 
-
 ## The Core Idea (Simple Diagram)
 
 ```
@@ -41,14 +40,14 @@ FTS Search                    Vector Search
 
 The system doesn’t replace one with the other — it **layers** them.
 
-
-
 ## How Developers Should Think About It
 
 ### **FTS answers:**  
+
 “Does this document contain the words the user typed?”
 
 ### **Vector search answers:**  
+
 “Does this document mean what the user meant?”
 
 ### **Reranking answers:**  
@@ -58,39 +57,25 @@ The system doesn’t replace one with the other — it **layers** them.
 ## Why This Matters in WordPress/MySQL
 
 ### 1. FTS alone is brittle  
+
 Misspellings, synonyms, and natural language phrasing break it.
 
 ### 2. Vector search alone is too fuzzy  
-It may return semantically related content that doesn’t match the user’s intent.
+
+It may return semantically related content that doesn’t match the user’s intent. We may have very specific terms like prodcut numbers that semantic search will not find.
 
 ### 3. Reranking gives you the best of both worlds  
+
 - FTS ensures precision  
 - Vectors ensure understanding  
 - Reranking ensures balance  
 
 This is exactly how modern search engines behave.
 
-
-## A WordPress‑Centric View
-
-### FTS strengths in WP 
-- Fast in MySQL  
-- Great for titles, slugs, product names  
-- Good for exact intent (“blue shoes”, “ACF tutorial”)  
-
-### Vector strengths in WP
-- Understands meaning (“how to speed up my site” ≈ “WordPress performance tips”)  
-- Handles long queries  
-- Handles conversational queries  
-
-### Reranking strengths in WP
-- Perfect for blog search, product search, documentation search  
-- Works beautifully with hybrid BM25 + embeddings  
-- Gives users “Google‑like” relevance without replacing MySQL  
-
 ## Summary Table
 
-- FTS - Keyword precision - Ensures exact matches and strong lexical signals -
+- Keyword precision 
+- Ensures exact matches and strong lexical signals
 - Vector Search - Semantic understanding - Captures meaning, synonyms, intent -
 - Reranking - Blends both signals - Produces the most relevant final ranking 
 

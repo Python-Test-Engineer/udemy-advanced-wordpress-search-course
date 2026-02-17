@@ -1,9 +1,8 @@
 # Examples 
 
-
 **The columns specified in MATCH() must exactly match a FULLTEXT index definition.**
 
-If you have `post_title`, `post_content` in your query ther emust be an FTS index built on these two columns and not two indexes of just one column.
+If you have `post_title`, `post_content` in your query there must be an FTS index built on these two columns and not two indexes of just one column.
 
 MySQL will select FTS indexes based on matching columns in query with index and has its own algorithms to determine which is best if there is more than one possibility, which is not recommended anyway.
 
@@ -20,15 +19,13 @@ Each section now includes:
 - Explanation of why each query behaves the way it does  
 - Notes on how WordPress developers might use it  
 
----
+## Natural Language Mode  
 
-# Natural Language Mode  
 Natural language mode is MySQL’s “Google‑like” search.  
+
 It ranks results by relevance using TF‑IDF‑style scoring.
 
----
-
-## Scenario: Searching blog posts about WordPress performance
+Scenario: Searching blog posts about WordPress performance
 
 ### Example A — Simple multi‑word search
 
@@ -37,12 +34,16 @@ Create index for all the examples
 ```sql
 CREATE FULLTEXT INDEX idx_posts_fulltext 
 ON wp_posts(post_title, post_content);
+
+-- We may just run queries against one column so we need an index on that column.
+ALTER TABLE wp_posts ADD FULLTEXT INDEX idx_title (post_title);
+ALTER TABLE wp_posts ADD FULLTEXT INDEX idx_content (post_content);
 ```
 
-Quereis... 
-
 ```sql
-SELECT ID, post_title,
+-- This requires a composite index on the two columns and not two single column indices.
+-- 'IN NATURAL LANGUAGE MODE' is the default and does not need to be added.
+SELECT ID, post_title, post_content
        MATCH(post_title, post_content)
        AGAINST ('wordpress performance caching' IN NATURAL LANGUAGE MODE) AS score
 FROM wp_posts
@@ -52,86 +53,105 @@ ORDER BY score DESC;
 ```
 
 **What happens:**  
+
 - MySQL breaks the query into words  
 - Computes relevance based on frequency  
 - Posts heavily discussing caching rank highest  
 
----
 
 ### Example B — Ranking titles higher than content
 ```sql
-SELECT ID, post_title,
+-- We need single column indices as we are matching against one column each time.
+SELECT ID, post_title, post_content,
        (MATCH(post_title) AGAINST ('performance tuning') * 3 +
         MATCH(post_content) AGAINST ('performance tuning')) AS relevance
 FROM wp_posts
 ORDER BY relevance DESC;
 ```
 
+```sql
+-- We need single column indices as we are matching against one column each time.
+SELECT ID, post_title, post_content,
+       (MATCH(post_title) AGAINST ('performance tuning') * 3 +
+        MATCH(post_content) AGAINST ('performance tuning')) AS relevance
+FROM wp_posts
+WHERE MATCH(post_title, post_content )
+      AGAINST ('performance tuning' IN NATURAL LANGUAGE MODE) > 3
+ORDER BY relevance DESC;
+```
+
 **Why this matters:**  
+
 - Titles often signal intent  
 - Weighted scoring improves result quality  
 
----
 
 ### Example C — Searching long‑form content
 
 ```sql
-SELECT ID, post_title,
+SELECT ID, post_title, post_content
        MATCH(post_content)
        AGAINST ('object cache redis persistent' IN NATURAL LANGUAGE MODE) AS score
 FROM wp_posts
 ORDER BY score DESC;
 ```
 
+```sql
+SELECT ID, post_title, post_content
+       MATCH(post_content)
+       AGAINST ('object cache redis persistent' IN NATURAL LANGUAGE MODE) AS score
+FROM wp_posts
+WHERE MATCH(post_content)
+      AGAINST ('object cache redis persistent' IN NATURAL LANGUAGE MODE) > 3
+ORDER BY score DESC;
+```
+
 **Use case:**  
+
 Great for documentation sites or long tutorials.
 
----
-
 ### Example D — Natural language with stopwords
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
-WHERE MATCH(post_title, post_content)
+WHERE MATCH(post_title) -- one column demonstrates better
       AGAINST ('how to speed up a wordpress site' IN NATURAL LANGUAGE MODE);
 ```
 
 **Note:**  
 Words like *how*, *to*, *a* are ignored unless you customize stopwords.
 
----
+## Boolean Mode  
 
-# Boolean Mode  
 Boolean mode gives you **precision control** using operators.
 
 Perfect for admin dashboards, advanced search pages, or custom WP search endpoints.
 
----
-
-## Scenario: Searching a knowledge base with strict rules
-
----
+Scenario: Searching a knowledge base with strict rules
 
 ### Example A — Required + excluded terms
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
       AGAINST ('+wordpress +cache -plugin' IN BOOLEAN MODE);
+
 ```
 
 **Meaning:**  
+
 - Must contain “wordpress”  
 - Must contain “cache”  
 - Must NOT contain “plugin”  
 
 Useful when users want to avoid plugin‑related results.
 
----
-
 ### Example B — Prefix matching
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
       AGAINST ('optimiz*' IN BOOLEAN MODE);
@@ -146,52 +166,61 @@ Matches:
 
 Great for autocomplete or “search as you type.”
 
----
-
 ### Example C — Exact phrase search
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
       AGAINST ('"object cache"' IN BOOLEAN MODE);
 ```
 
 **Use case:**  
+
 When users want precise technical terms.
 
----
-
 ### Example D — Combining phrase + required terms
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
-      AGAINST ('+"object cache" +redis -memcached' IN BOOLEAN MODE);
+      AGAINST ('+"object cache" +plugin -postgres' IN BOOLEAN MODE);
 ```
 
 **Meaning:**  
-- Must contain the exact phrase “object cache”  
-- Must contain “redis”  
-- Must NOT contain “memcached”  
 
----
+- Must contain the exact phrase "object cache" 
+- Must contain "plugin"  
+- Must NOT contain "postgres"  
 
 ### **Example E — Boosting relevance with tilde (~)**
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
-      AGAINST ('+cache ~redis' IN BOOLEAN MODE);
+      AGAINST ('+cache ~plugin' IN BOOLEAN MODE);
+```
+
+```sql
+SELECT ID, post_title, post_content,
+       MATCH(post_title, post_content)
+       AGAINST ('+cache ~plugin' IN BOOLEAN MODE) AS score
+FROM wp_posts
+WHERE MATCH(post_title, post_content)
+      AGAINST ('+cache ~plugin' IN BOOLEAN MODE) > 3;
 ```
 
 **Interpretation:**  
-- “cache” is required  
-- “redis” is optional but increases relevance  
 
----
+- "cache" is required  
+- "plugin" is optional but increases relevance  
 
-# Query Expansion Mode  
+## Query Expansion Mode  
+
 Query expansion is MySQL’s “find related topics” mode.
+
 
 It performs:
 
@@ -200,35 +229,30 @@ It performs:
 3. Expands the query  
 4. Runs a second search  
 
----
 
-## Scenario: A user searches for “SEO” but your content uses synonyms like “search ranking,” “organic traffic,” etc.
+Scenario: A user searches for "yoga" but your content uses synonyms like “fitness,” “stretching” etc.
 
----
+PLUGIN05 is good to demonstrate this using "yoga" as search term.
 
 ### **Example A — Basic query expansion**
 ```sql
-SELECT ID, post_title,
+SELECT ID, post_title, post_content,
        MATCH(post_title, post_content)
-       AGAINST ('seo' WITH QUERY EXPANSION) AS score
+       AGAINST ('yoga' WITH QUERY EXPANSION) AS score
 FROM wp_posts
 ORDER BY score DESC;
 ```
 
 **What happens:**  
-MySQL may expand “seo” to include:
 
-- search engine  
-- ranking  
-- organic  
-- traffic  
+MySQL may expand "yoga" to include terms in the first pass result set and then run the search again with these extra terms.
+
+
 - optimization  
-
----
 
 ### **Example B — Multi‑word query expansion**
 ```sql
-SELECT ID, post_title,
+SELECT ID, post_title, post_content,
        MATCH(post_title, post_content)
        AGAINST ('wordpress security' WITH QUERY EXPANSION) AS score
 FROM wp_posts
@@ -242,17 +266,17 @@ ORDER BY score DESC;
 - hardening  
 - login protection  
 
----
-
 ### **Example C — Discovering related topics**
+
 ```sql
-SELECT ID, post_title,
+SELECT ID, post_title, post_content,
        MATCH(post_title, post_content)
        AGAINST ('speed' WITH QUERY EXPANSION) AS score
 FROM wp_posts;
 ```
 
 **Why this is useful:**  
+
 If your content uses synonyms like:
 
 - performance  
@@ -262,17 +286,17 @@ If your content uses synonyms like:
 
 MySQL will find them.
 
----
-
 ### Example D — Query expansion on product reviews
+
 ```sql
-SELECT ID, post_title
+SELECT ID, post_title, post_content
 FROM wp_posts
 WHERE MATCH(post_title, post_content)
       AGAINST ('hosting' WITH QUERY EXPANSION);
 ```
 
 **Possible expansions:**  
+
 - uptime  
 - bandwidth  
 - shared hosting  
@@ -281,14 +305,12 @@ WHERE MATCH(post_title, post_content)
 
 This is powerful for e‑commerce or affiliate sites.
 
----
-
 # Summary Table
 
 |      Mode        |             Best For              |               Examples                 |
 |------------------|-----------------------------------|----------------------------------------|
 | Natural Language | General search, relevance ranking | “wordpress caching tutorial”           |
 | Boolean Mode     | Precision control                 | `+cache -plugin "object cache"`        |
-| Query Expansion  | Discovering related topics        | `AGAINST ('seo' WITH QUERY EXPANSION)` |
+| Query Expansion  | Discovering related topics        | `AGAINST ('yoga' WITH QUERY EXPANSION)` |
 
 <br>
