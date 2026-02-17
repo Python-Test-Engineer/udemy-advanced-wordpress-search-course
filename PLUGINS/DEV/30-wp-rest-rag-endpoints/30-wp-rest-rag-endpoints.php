@@ -1360,7 +1360,7 @@ class WP_REST_RAG_Endpoints {
             wp_send_json_error($result['message']);
         }
     }
-
+    #region model
     /**
      * Call OpenAI API to get embedding for text
      */
