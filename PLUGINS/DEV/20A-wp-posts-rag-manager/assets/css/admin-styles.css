@@ -1,0 +1,679 @@
+/**
+ * WP Posts RAG Manager - Admin Styles
+ *
+ * This file contains all the CSS styles for the plugin admin pages.
+ *
+ * @package WP_Posts_RAG_Manager
+ * @subpackage Assets
+ *
+ * ============================================================================
+ * STYLES OVERVIEW:
+ * ============================================================================
+ * 1. General layout and cards
+ * 2. Form elements
+ * 3. Buttons
+ * 4. Results display
+ * 5. Comparison grid
+ * 6. Responsive styles
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. GENERAL LAYOUT
+   ============================================================================ */
+
+/**
+ * Main admin wrapper.
+ * Provides consistent spacing and layout.
+ */
+.wprag-admin-wrap {
+    /* Add some padding to the main wrapper */
+    padding: 10px 20px 20px 0;
+}
+
+/**
+ * Page title styling.
+ * Includes version badge.
+ */
+.wprag-page-title {
+    /* WordPress admin heading styles */
+    font-size: 23px;
+    font-weight: 400;
+    margin: 0 0 20px 0;
+    padding: 0;
+}
+
+/**
+ * Version badge.
+ * Small tag showing plugin version.
+ */
+.wprag-version {
+    /* Lighter font weight for version */
+    font-weight: 300;
+    /* Muted color */
+    color: #72777c;
+    /* Smaller font size */
+    font-size: 14px;
+    /* Slight left margin */
+    margin-left: 10px;
+}
+
+/* ============================================================================
+   2. CARDS
+   ============================================================================ */
+
+/**
+ * Card component.
+ * Used to group related content on admin pages.
+ */
+.wprag-card {
+    /* White background */
+    background: #fff;
+    /* Standard WordPress border color */
+    border: 1px solid #ccd0d4;
+    /* Padding inside the card */
+    padding: 20px;
+    /* Subtle box shadow */
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    /* Rounded corners (WordPress style) */
+    border-radius: 4px;
+    /* Box sizing */
+    box-sizing: border-box;
+    /* Max width for readability */
+    max-width: 800px;
+    /* Margin at bottom for spacing */
+    margin-bottom: 20px;
+}
+
+/**
+ * Card heading.
+ * Matches WordPress H2 style.
+ */
+.wprag-card h2 {
+    /* Remove default margin */
+    margin-top: 0;
+    /* Match WordPress heading size */
+    font-size: 1.3em;
+    /* Bottom margin */
+    margin-bottom: 15px;
+    /* Border bottom for visual separation */
+    border-bottom: 1px solid #eee;
+    /* Padding at bottom */
+    padding-bottom: 10px;
+}
+
+/**
+ * Card subheadings (H3).
+ */
+.wprag-card h3 {
+    /* Slightly smaller than H2 */
+    font-size: 1.1em;
+    /* Top margin for spacing */
+    margin-top: 20px;
+    /* Bottom margin */
+    margin-bottom: 10px;
+}
+
+/* ============================================================================
+   3. FORM ELEMENTS
+   ============================================================================ */
+
+/**
+ * Form table styles.
+ * Using WordPress form-table class is recommended,
+ * but adding some custom styles here.
+ */
+.wprag-card .form-table {
+    /* Full width */
+    width: 100%;
+    /* Collapse borders */
+    border-collapse: collapse;
+    /* Bottom margin */
+    margin-bottom: 15px;
+}
+
+/**
+ * Form table rows.
+ */
+.wprag-card .form-table tr {
+    /* Vertical alignment */
+    vertical-align: top;
+}
+
+/**
+ * Form table headers (th).
+ */
+.wprag-card .form-table th {
+    /* Left padding */
+    padding-left: 0;
+    /* Width for label column */
+    width: 150px;
+    /* Bold font */
+    font-weight: 600;
+    /* Line height */
+    line-height: 1.5;
+    /* Padding */
+    padding: 10px 0;
+}
+
+/**
+ * Form table cells (td).
+ */
+.wprag-card .form-table td {
+    /* Padding */
+    padding: 10px 0;
+    /* Full width of remaining space */
+    width: auto;
+}
+
+/**
+ * Text inputs.
+ * Standard WordPress input styling.
+ */
+.wprag-card input[type="text"],
+.wprag-card input[type="number"],
+.wprag-card input[type="password"] {
+    /* Full width */
+    width: 100%;
+    /* Max width for larger screens */
+    max-width: 400px;
+    /* Standard WordPress input padding */
+    padding: 8px;
+    /* Font size */
+    font-size: 14px;
+    /* Border */
+    border: 1px solid #7e8993;
+    /* Border radius */
+    border-radius: 4px;
+    /* Background */
+    background: #fff;
+}
+
+/**
+ * Number input specific width.
+ */
+.wprag-card input[type="number"] {
+    /* Smaller width for number inputs */
+    width: 80px;
+}
+
+/**
+ * Focus state for inputs.
+ */
+.wprag-card input[type="text"]:focus,
+.wprag-card input[type="number"]:focus,
+.wprag-card input[type="password"]:focus {
+    /* WordPress focus color */
+    border-color: #2271b1;
+    /* Box shadow */
+    box-shadow: 0 0 2px rgba(34, 113, 177, 0.2);
+    /* Outline */
+    outline: none;
+}
+
+/**
+ * Checkbox labels.
+ * Make them more clickable.
+ */
+.wprag-card label {
+    /* Cursor pointer */
+    cursor: pointer;
+    /* Better display */
+    display: inline-block;
+    /* Margin */
+    margin: 5px 0;
+}
+
+/**
+ * Checkbox input.
+ */
+.wprag-card input[type="checkbox"] {
+    /* Right margin for spacing */
+    margin-right: 8px;
+}
+
+/**
+ * Description text.
+ * Smaller, muted text below form elements.
+ */
+.wprag-card .description {
+    /* Muted color */
+    color: #646970;
+    /* Font size */
+    font-size: 12px;
+    /* Italic style */
+    font-style: italic;
+    /* Top margin */
+    margin-top: 5px;
+    /* Line height */
+    line-height: 1.4;
+}
+
+/**
+ * Code/endpoint display.
+ */
+.wprag-card code {
+    /* Background */
+    background: #f0f0f1;
+    /* Padding */
+    padding: 2px 6px;
+    /* Border radius */
+    border-radius: 3px;
+    /* Font */
+    font-family: Consolas, Monaco, monospace;
+    /* Font size */
+    font-size: 13px;
+    /* Word break */
+    word-break: break-all;
+}
+
+/* ============================================================================
+   4. BUTTONS
+   ============================================================================ */
+
+/**
+ * Submit button wrapper.
+ */
+.wprag-card .submit {
+    /* Top margin */
+    margin-top: 15px;
+    /* No padding */
+    padding: 0;
+}
+
+/**
+ * Primary button customization.
+ * Ensures consistency with WordPress styles.
+ */
+.wprag-card .button-primary {
+    /* WordPress primary button styles */
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    text-decoration: none;
+    /* Box shadow */
+    box-shadow: 0 1px 0 #2271b1;
+    /* Transition */
+    transition: background-color 0.2s;
+}
+
+/**
+ * Primary button hover.
+ */
+.wprag-card .button-primary:hover {
+    /* Darker blue on hover */
+    background: #135e96;
+    border-color: #135e96;
+}
+
+/**
+ * Primary button disabled.
+ */
+.wprag-card .button-primary:disabled {
+    /* Gray out when disabled */
+    background: #a7aaad;
+    border-color: #a7aaad;
+    box-shadow: 0 1px 0 #a7aaad;
+    /* Cursor not allowed */
+    cursor: not-allowed;
+}
+
+/**
+ * Secondary button.
+ */
+.wprag-card .button-secondary {
+    /* White background */
+    background: #fff;
+    border-color: #7e8993;
+    color: #3c434a;
+    /* Box shadow */
+    box-shadow: 0 1px 0 #7e8993;
+    /* Transition */
+    transition: background-color 0.2s;
+}
+
+/**
+ * Secondary button hover.
+ */
+.wprag-card .button-secondary:hover {
+    /* Light gray on hover */
+    background: #f6f7f7;
+}
+
+/**
+ * Secondary button disabled.
+ */
+.wprag-card .button-secondary:disabled {
+    /* Gray out */
+    color: #a7aaad;
+    border-color: #a7aaad;
+    box-shadow: 0 1px 0 #a7aaad;
+    cursor: not-allowed;
+}
+
+/* ============================================================================
+   5. RESULTS DISPLAY
+   ============================================================================ */
+
+/**
+ * Results container.
+ */
+.wprag-results-container {
+    /* Background */
+    background: #f5f5f5;
+    /* Padding */
+    padding: 15px;
+    /* Border radius */
+    border-radius: 4px;
+    /* Max height for scrolling */
+    max-height: 500px;
+    /* Overflow scroll */
+    overflow-y: auto;
+    /* Top margin */
+    margin-top: 20px;
+}
+
+/**
+ * JSON display preformatted text.
+ */
+.wprag-json {
+    /* Preserve whitespace */
+    white-space: pre-wrap;
+    /* Word wrap */
+    word-wrap: break-word;
+    /* Font */
+    font-family: Consolas, Monaco, monospace;
+    /* Font size */
+    font-size: 12px;
+    /* Line height */
+    line-height: 1.5;
+    /* Margin */
+    margin: 0;
+}
+
+/**
+ * Results container styling.
+ */
+#wprag-fts-results,
+#wprag-vector-results {
+    /* Background */
+    background: #f5f5f5;
+    /* Padding */
+    padding: 15px;
+    /* Border radius */
+    border-radius: 4px;
+    /* Max height */
+    max-height: 500px;
+    /* Overflow */
+    overflow-y: auto;
+    /* Top margin */
+    margin-top: 20px;
+}
+
+/**
+ * Results heading.
+ */
+#wprag-fts-results h3,
+#wprag-vector-results h3 {
+    /* Top margin */
+    margin-top: 0;
+}
+
+/**
+ * Results preformatted text.
+ */
+#wprag-fts-json,
+#wprag-vector-json {
+    /* White background */
+    background: #fff;
+    /* Padding */
+    padding: 10px;
+    /* Border */
+    border: 1px solid #ddd;
+    /* Border radius */
+    border-radius: 4px;
+    /* Preserve whitespace */
+    white-space: pre-wrap;
+    /* Word wrap */
+    word-wrap: break-word;
+    /* Font */
+    font-family: Consolas, Monaco, monospace;
+    /* Font size */
+    font-size: 12px;
+    /* Margin */
+    margin: 0;
+}
+
+/* ============================================================================
+   6. COMPARISON GRID
+   ============================================================================ */
+
+/**
+ * Comparison results container.
+ */
+#wprag-compare-results {
+    /* Full width */
+    max-width: none;
+    /* Width 100% */
+    width: 100%;
+}
+
+/**
+ * Comparison grid layout.
+ */
+.wprag-compare-grid {
+    /* CSS Grid */
+    display: grid;
+    /* Two columns */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Gap between columns */
+    gap: 20px;
+}
+
+/**
+ * Comparison panel styling.
+ */
+.wprag-compare-panel {
+    /* Background */
+    background: #f5f5f5;
+    /* Padding */
+    padding: 15px;
+    /* Border radius */
+    border-radius: 4px;
+    /* Max height */
+    max-height: 500px;
+    /* Overflow */
+    overflow-y: auto;
+}
+
+/**
+ * Comparison JSON text.
+ */
+.wprag-compare-json {
+    /* Background */
+    background: #fff;
+    /* Padding */
+    padding: 10px;
+    /* Border */
+    border: 1px solid #ddd;
+    /* Border radius */
+    border-radius: 4px;
+    /* Preserve whitespace */
+    white-space: pre-wrap;
+    /* Word wrap */
+    word-wrap: break-word;
+    /* Font */
+    font-family: Consolas, Monaco, monospace;
+    /* Font size */
+    font-size: 11px;
+    /* Margin */
+    margin: 0;
+}
+
+/* ============================================================================
+   7. STATUS INDICATORS
+   ============================================================================ */
+
+/**
+ * Status indicator - Success.
+ */
+.wprag-status-success {
+    /* Green color */
+    color: #00a32a;
+    /* Bold */
+    font-weight: 600;
+}
+
+/**
+ * Status indicator - Error.
+ */
+.wprag-status-error {
+    /* Red color */
+    color: #d63638;
+    /* Bold */
+    font-weight: 600;
+}
+
+/**
+ * Status indicator - Warning.
+ */
+.wprag-status-warning {
+    /* Orange color */
+    color: #d9730d;
+    /* Bold */
+    font-weight: 600;
+}
+
+/* ============================================================================
+   8. RESPONSIVE STYLES
+   ============================================================================ */
+
+/**
+ * Responsive: Stack comparison grid on smaller screens.
+ */
+@media (max-width: 960px) {
+    /* Stack comparison grid */
+    .wprag-compare-grid {
+        /* Single column */
+        grid-template-columns: 1fr;
+    }
+}
+
+/**
+ * Responsive: Smaller screens.
+ */
+@media (max-width: 600px) {
+    /* Adjust card padding */
+    .wprag-card {
+        /* Smaller padding */
+        padding: 15px;
+    }
+
+    /* Full width inputs on mobile */
+    .wprag-card input[type="text"],
+    .wprag-card input[type="number"],
+    .wprag-card input[type="password"] {
+        /* Full width */
+        width: 100%;
+        /* No max width */
+        max-width: none;
+    }
+
+    /* Stack form elements */
+    .wprag-card .form-table th,
+    .wprag-card .form-table td {
+        /* Display block */
+        display: block;
+        /* Full width */
+        width: 100%;
+        /* No padding */
+        padding: 5px 0;
+    }
+}
+
+/* ============================================================================
+   9. UTILITY CLASSES
+   ============================================================================ */
+
+/**
+ * Clearfix for floats.
+ */
+.wprag-clearfix::after {
+    /* Clear both */
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/**
+ * Hidden element.
+ */
+.wprag-hidden {
+    /* Hide element */
+    display: none;
+}
+
+/**
+ * Visible element.
+ */
+.wprag-visible {
+    /* Show element */
+    display: block;
+}
+
+/* ============================================================================
+   10. NOTICE STYLES
+   ============================================================================ */
+
+/**
+ * Notice message container.
+ */
+#wprag-message,
+#wprag-search-message {
+    /* Margin bottom */
+    margin-bottom: 15px;
+    /* Padding */
+    padding: 10px 15px;
+    /* Border radius */
+    border-radius: 4px;
+}
+
+/**
+ * Notice success.
+ */
+.notice-success {
+    /* Green background */
+    background: #fff;
+    border-left: 4px solid #00a32a;
+}
+
+/**
+ * Notice error.
+ */
+.notice-error {
+    /* Red background */
+    background: #fff;
+    border-left: 4px solid #d63638;
+}
+
+/**
+ * Notice info.
+ */
+.notice-info {
+    /* Blue background */
+    background: #fff;
+    border-left: 4px solid #2271b1;
+}
+
+/**
+ * Notice warning.
+ */
+.notice-warning {
+    /* Orange background */
+    background: #fff;
+    border-left: 4px solid #d9730d;
+}
+
+/* ============================================================================
+   END OF STYLES
+   ============================================================================ */
