@@ -1012,7 +1012,7 @@ class Posts_RAG_Manager {
         );
     }
   
-    
+    #region model
     /**
      * Call OpenAI API to get embedding for text
      */
@@ -1053,7 +1053,7 @@ class Posts_RAG_Manager {
         
         return false;
     }
-    
+    #endregion
     /**
      * Search testing page (placeholder - copy from original)
      */

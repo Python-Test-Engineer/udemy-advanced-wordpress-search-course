@@ -34,6 +34,7 @@ class WP_REST_RAG_Endpoints {
         add_action('wp_ajax_test_rag_vector_search', array($this, 'ajax_test_vector_search'));
         add_action('wp_ajax_test_rag_hybrid_search', array($this, 'ajax_test_hybrid_search'));
         add_action('wp_ajax_create_rag_fulltext_index', array($this, 'ajax_create_fulltext_index'));
+        add_action('wp_ajax_delete_rag_fulltext_index', array($this, 'ajax_delete_fulltext_index'));
     }
 
     /**
@@ -211,6 +212,7 @@ class WP_REST_RAG_Endpoints {
         }
 
         $index_exists = $this->check_fulltext_index();
+        $all_indexes = $this->get_all_indexes();
 
         ?>
         <style>
@@ -230,7 +232,31 @@ class WP_REST_RAG_Endpoints {
             }
             .rag-card code {
                 font-size: 1.5rem;
-         
+                line-height: 1.4;
+            }
+            .rag-indexes-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+            .rag-indexes-table th,
+            .rag-indexes-table td {
+                border: 1px solid #c3c4c7;
+                padding: 8px 12px;
+                text-align: left;
+            }
+            .rag-indexes-table th {
+                background: #f5f5f5;
+                font-weight: 600;
+            }
+            .rag-indexes-table .index-type-fulltext {
+                color: #0073aa;
+                font-weight: 600;
+            }
+            .rag-index-buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
             }
         </style>
         <div class="wrap">
@@ -242,17 +268,70 @@ class WP_REST_RAG_Endpoints {
 
             <div class="rag-card">
                 <h2>Full-Text Index</h2>
-                <p>The REST full-text search endpoint requires a MySQL full-text index.</p>
-                <p>Status: <strong style="color: <?php echo $index_exists ? 'green' : 'red'; ?>;">
+                <p>The REST full-text search endpoint requires a MySQL full-text index on the <code><?php echo RAG_TABLE_NAME; ?></code> table.</p>
+                
+                <?php if (!empty($all_indexes)): ?>
+                    <h3>Current Indexes</h3>
+                    <table class="rag-indexes-table">
+                        <thead>
+                            <tr>
+                                <th>Index Name</th>
+                                <th>Columns</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $grouped_indexes = array();
+                            foreach ($all_indexes as $index) {
+                                if (!isset($grouped_indexes[$index->Key_name])) {
+                                    $grouped_indexes[$index->Key_name] = array(
+                                        'columns' => array(),
+                                        'type' => $index->Index_type
+                                    );
+                                }
+                                $grouped_indexes[$index->Key_name]['columns'][] = $index->Column_name;
+                            }
+                            foreach ($grouped_indexes as $index_name => $index_info): 
+                                $is_fulltext = (strpos($index_name, 'fulltext') !== false);
+                            ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo esc_html($index_name); ?></strong>
+                                        <?php if ($index_name === 'fulltext_search_idx'): ?>
+                                            <span style="color: #0073aa;">(FTS)</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo esc_html(implode(', ', $index_info['columns'])); ?></td>
+                                    <td class="<?php echo $is_fulltext ? 'index-type-fulltext' : ''; ?>">
+                                        <?php echo esc_html($index_info['type']); ?>
+                                        <?php if ($is_fulltext): ?>
+                                            <br><small>(Full-Text)</small>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p>No indexes found on this table.</p>
+                <?php endif; ?>
+
+                <p style="margin-top: 15px;">Status: <strong style="color: <?php echo $index_exists ? 'green' : 'red'; ?>;">
                     <?php echo $index_exists ? '✅ Created' : '❌ Not Created'; ?>
                 </strong></p>
-                <?php if (!$index_exists): ?>
-                    <button type="button" id="create-fulltext-index-btn" class="button button-primary">
-                        Create Full-Text Index
-                    </button>
-                <?php else: ?>
-                    <p class="description">Full-text index is already available for search.</p>
-                <?php endif; ?>
+
+                <div class="rag-index-buttons">
+                    <?php if (!$index_exists): ?>
+                        <button type="button" id="create-fulltext-index-btn" class="button button-primary">
+                            Create Full-Text Index
+                        </button>
+                    <?php else: ?>
+                        <button type="button" id="delete-fulltext-index-btn" class="button button-secondary">
+                            Delete Full-Text Index
+                        </button>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="rag-card">
@@ -610,6 +689,40 @@ class WP_REST_RAG_Endpoints {
                     }
                 });
             });
+
+            // Delete Full-Text Index
+            $('#delete-fulltext-index-btn').on('click', function() {
+                var $btn = $(this);
+
+                if (!confirm('Are you sure you want to delete the full-text index? This will disable full-text search functionality.')) {
+                    return;
+                }
+
+                $btn.prop('disabled', true).text('Deleting Index...');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'delete_rag_fulltext_index'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage(response.data, 'success');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showMessage(response.data || 'Failed to delete index.', 'error');
+                            $btn.prop('disabled', false).text('Delete Full-Text Index');
+                        }
+                    },
+                    error: function() {
+                        showMessage('An error occurred while deleting the index.', 'error');
+                        $btn.prop('disabled', false).text('Delete Full-Text Index');
+                    }
+                });
+            });
         });
         </script>
         <?php
@@ -864,7 +977,7 @@ class WP_REST_RAG_Endpoints {
 
         return $dot_product / ($magnitude1 * $magnitude2);
     }
-
+    #region VECTOR 
     /**
      * Perform vector search using cosine similarity
      */
@@ -1003,6 +1116,47 @@ class WP_REST_RAG_Endpoints {
         );
 
         return !empty($index_check);
+    }
+
+    /**
+     * Get all indexes on the RAG table
+     */
+    private function get_all_indexes() {
+        global $wpdb;
+
+        $indexes = $wpdb->get_results(
+            "SHOW INDEX FROM " . RAG_TABLE_NAME
+        );
+
+        return $indexes;
+    }
+    /**
+     * Delete full-text index on the RAG table
+     */
+    private function delete_fulltext_index() {
+        global $wpdb;
+
+        if (!$this->check_fulltext_index()) {
+            return array(
+                'success' => false,
+                'message' => 'Full-text index does not exist.'
+            );
+        }
+
+        $sql = "ALTER TABLE " . RAG_TABLE_NAME . " DROP INDEX fulltext_search_idx";
+        $result = $wpdb->query($sql);
+
+        if ($result === false) {
+            return array(
+                'success' => false,
+                'message' => 'Failed to delete full-text index: ' . $wpdb->last_error
+            );
+        }
+
+        return array(
+            'success' => true,
+            'message' => 'Full-text index deleted successfully.'
+        );
     }
 
     /**
@@ -1190,6 +1344,23 @@ class WP_REST_RAG_Endpoints {
         }
     }
 
+    /**
+     * AJAX handler for deleting full-text index
+     */
+    public function ajax_delete_fulltext_index() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $result = $this->delete_fulltext_index();
+
+        if ($result['success']) {
+            wp_send_json_success($result['message']);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+    #region model
     /**
      * Call OpenAI API to get embedding for text
      */

@@ -1,3 +1,16 @@
+# TLDR; - How LLM Answer Generation Works
+
+The WordPress RAG system generates LLM answers through a **Retrieval-Augmented Generation (RAG)** pipeline:
+
+1. **Retrieve**: FTS and Vector Search find relevant posts from WordPress database
+2. **Build Context**: Retrieved posts are formatted into a context string (title, categories, tags, content excerpt). We could trim this down and not send categories, tags etc.
+3. **Call OpenAI**: Send a request to OpenAI's Chat Completions API with the formatted context and user question
+4. **Generate Answer**: GPT model reads the context and question, then generates an answer based ONLY on the provided context (no hallucinations)
+
+**Key function**: `generate_answer()` (lines 873-925) handles the API call to OpenAI using `gpt-4o-mini` model, passing the retrieved context and user query as messages. The response is parsed and returned as the final answer.
+
+---
+
 # How the Final Answer is Generated with OpenAI
 
 ## Overview

@@ -268,7 +268,7 @@ class WP_Reranking_Plugin {
         if ($explain) {
             $steps[] = array(
                 'step' => 'Trimmed Input Results',
-                'description' => 'Sorted by score and trimmed to per-method limit before normalization.',
+                'description' => 'Each engine (FTS and vector) is sorted by its own score, then only the top N per engine are kept (per-method limit). This ensures we normalize and blend the strongest candidates from each source, rather than letting one engine dominate by returning a huge list.',
                 'fulltext_results' => $fulltext_results,
                 'vector_results' => $vector_results,
                 'per_method_limit' => $per_method_limit
@@ -357,9 +357,17 @@ class WP_Reranking_Plugin {
             $normalized_relevance = isset($item['relevance_score']) ? ($item['relevance_score'] / $max_relevance) : 0;
             $normalized_similarity = isset($item['similarity_score']) ? ($item['similarity_score'] / $max_similarity) : 0;
             $title_boost = $this->get_title_keyword_boost($item, $query);
-            $items[$post_id]['combined_score'] = ($normalized_relevance * $fts_weight)
-                + ($normalized_similarity * $vector_weight)
-                + $title_boost;
+            $weighted_relevance = $normalized_relevance * $fts_weight;
+            $weighted_similarity = $normalized_similarity * $vector_weight;
+            $items[$post_id]['combined_score'] = $weighted_relevance + $weighted_similarity + $title_boost;
+
+            if ($explain) {
+                $items[$post_id]['normalized_relevance'] = $normalized_relevance;
+                $items[$post_id]['normalized_similarity'] = $normalized_similarity;
+                $items[$post_id]['weighted_relevance'] = $weighted_relevance;
+                $items[$post_id]['weighted_similarity'] = $weighted_similarity;
+                $items[$post_id]['title_boost'] = $title_boost;
+            }
         }
 
         if ($explain) {
@@ -370,11 +378,14 @@ class WP_Reranking_Plugin {
                 $normalized_items[$post_id] = $item;
                 $normalized_items[$post_id]['normalized_relevance'] = number_format($item['relevance_score'], 4) . ' / ' . number_format($max_relevance, 4) . ' = ' . number_format($normalized_relevance, 4);
                 $normalized_items[$post_id]['normalized_similarity'] = number_format($item['similarity_score'], 4) . ' / ' . number_format($max_similarity, 4) . ' = ' . number_format($normalized_similarity, 4);
-                $normalized_items[$post_id]['combined_score'] = '(' . number_format($normalized_relevance, 4) . ' × ' . $fts_weight . ') + (' . number_format($normalized_similarity, 4) . ' × ' . $vector_weight . ') = ' . number_format($item['combined_score'], 4);
+                $normalized_items[$post_id]['weighted_relevance'] = number_format($normalized_relevance, 4) . ' × ' . $fts_weight . ' = ' . number_format($normalized_relevance * $fts_weight, 4);
+                $normalized_items[$post_id]['weighted_similarity'] = number_format($normalized_similarity, 4) . ' × ' . $vector_weight . ' = ' . number_format($normalized_similarity * $vector_weight, 4);
+                $normalized_items[$post_id]['title_boost'] = number_format($this->get_title_keyword_boost($item, $query), 4);
+                $normalized_items[$post_id]['combined_score'] = '(' . number_format($normalized_relevance, 4) . ' × ' . $fts_weight . ') + (' . number_format($normalized_similarity, 4) . ' × ' . $vector_weight . ') + ' . number_format($this->get_title_keyword_boost($item, $query), 4) . ' = ' . number_format($item['combined_score'], 4);
             }
             $steps[] = array(
                 'step' => 'Normalization and Combined Score',
-                'description' => 'Normalized relevance and similarity scores by dividing by their respective max values, then computed combined score using weighting (FTS × ' . $fts_weight . ', Vector × ' . $vector_weight . ').',
+                'description' => 'Normalized relevance and similarity scores by dividing by their respective max values, then computed combined score using weighting (FTS × ' . $fts_weight . ', Vector × ' . $vector_weight . ') plus title boost.',
                 'normalized_items' => $normalized_items
             );
         }
@@ -435,6 +446,9 @@ class WP_Reranking_Plugin {
                 $items[$index]['method'] = 'UNKNOWN';
             }
             unset($items[$index]['combined_score']);
+            if (!$explain) {
+                unset($items[$index]['normalized_relevance'], $items[$index]['normalized_similarity'], $items[$index]['weighted_relevance'], $items[$index]['weighted_similarity'], $items[$index]['title_boost']);
+            }
             $position++;
         }
 
@@ -856,10 +870,13 @@ class WP_Reranking_Plugin {
                     gap: 16px;
                     margin-top: 16px;
                 }
-                .toplevel_page_wp-reranking .wp-reranking-card {
+                .toplevel_page_wp-reranking .wp-reranking-card,
+                .toplevel_page_wp-reranking .wp-reranking-panel,
+                .toplevel_page_wp-reranking .wp-reranking-summary {
                     border: 1px solid #e5e7eb;
                     border-radius: 12px;
                     padding: 16px;
+                    margin-top:10px;
                     background: #ffffff;
                     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
                 }
@@ -887,10 +904,23 @@ class WP_Reranking_Plugin {
                     font-size: 11px;
                     font-weight: 600;
                 }
+                .toplevel_page_wp-reranking .wp-reranking-badge--highlight {
+                    background: #dbeafe;
+                    color: #1d4ed8;
+                }
                 .toplevel_page_wp-reranking .wp-reranking-excerpt {
                     font-size: 13px;
                     color: #374151;
                     line-height: 1.5;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-explain {
+                    font-size: 12px;
+                    color: #475569;
+                    margin-top: 10px;
+                    background: #f8fafc;
+                    border: 1px dashed #e2e8f0;
+                    border-radius: 8px;
+                    padding: 10px;
                 }
                 .toplevel_page_wp-reranking .wp-reranking-sql {
                     margin-top: 20px;
@@ -898,11 +928,80 @@ class WP_Reranking_Plugin {
                     border-left: 4px solid #0ea5e9;
                     padding: 16px;
                 }
-                .toplevel_page_wp-reranking .wp-reranking-sql pre {
+                .toplevel_page_wp-reranking .wp-reranking-sql pre,
+                .toplevel_page_wp-reranking .wp-reranking-code {
                     background: #fff;
                     border: 1px solid #e5e7eb;
                     padding: 12px;
                     white-space: pre-wrap;
+                    border-radius: 8px;
+                    font-size: 12px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-summary-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 12px;
+                    margin-top: 12px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-summary-item {
+                    border-radius: 10px;
+                    padding: 12px;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-summary-item strong {
+                    display: block;
+                    font-size: 13px;
+                    color: #111827;
+                    margin-bottom: 4px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-summary-item span {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #0f172a;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-step {
+                    margin-top: 16px;
+                    padding: 16px;
+                    border-radius: 12px;
+                    border: 1px solid #e5e7eb;
+                    background: #f8fafc;
+                }
+                .toplevel_page_wp-reranking details {
+                    background: #fff;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                    padding: 10px 12px;
+                    margin-top: 10px;
+                }
+                .toplevel_page_wp-reranking summary {
+                    cursor: pointer;
+                    font-weight: 600;
+                    color: #0f172a;
+                }
+                .toplevel_page_wp-reranking table.wp-reranking-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 12px;
+                    margin-top: 10px;
+                }
+                .toplevel_page_wp-reranking table.wp-reranking-table th,
+                .toplevel_page_wp-reranking table.wp-reranking-table td {
+                    text-align: left;
+                    padding: 8px 10px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                .toplevel_page_wp-reranking table.wp-reranking-table th {
+                    background: #f1f5f9;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.02em;
+                    color: #475569;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-section-title {
+                    margin-top: 20px;
+                    margin-bottom: 8px;
+                    font-size: 18px;
                 }
             </style>
             <h1>Reranker Test Page</h1>
@@ -960,54 +1059,176 @@ class WP_Reranking_Plugin {
                 } else {
                     $formatted_sql = 'none';
                 }
+                $summary_results = isset($output['results']) && is_array($output['results']) ? $output['results'] : array();
+                $summary_count = count($summary_results);
+                $summary_methods = array('FTS' => 0, 'VECTOR' => 0, 'FTS+VECTOR' => 0, 'UNKNOWN' => 0);
+                $summary_fts_weight = isset($output['weights']['fts']) ? (float) $output['weights']['fts'] : 1;
+                $summary_vector_weight = isset($output['weights']['vector']) ? (float) $output['weights']['vector'] : 1;
+                foreach ($summary_results as $summary_item) {
+                    $method = isset($summary_item['method']) ? $summary_item['method'] : 'UNKNOWN';
+                    if (!isset($summary_methods[$method])) {
+                        $summary_methods[$method] = 0;
+                    }
+                    $summary_methods[$method]++;
+                }
                 ?>
+                <div class="wp-reranking-summary">
+                    <h2>Reranking Summary</h2>
+                    <p style="font-size:12px;color:#555;margin-bottom:12px;">Quick snapshot of what the reranker produced.</p>
+                    <div class="wp-reranking-summary-grid">
+                        <div class="wp-reranking-summary-item">
+                            <strong>Total Results</strong>
+                            <span><?php echo esc_html($summary_count); ?></span>
+                        </div>
+                        <div class="wp-reranking-summary-item">
+                            <strong>FTS Only</strong>
+                            <span><?php echo esc_html($summary_methods['FTS'] ?? 0); ?></span>
+                        </div>
+                        <div class="wp-reranking-summary-item">
+                            <strong>Vector Only</strong>
+                            <span><?php echo esc_html($summary_methods['VECTOR'] ?? 0); ?></span>
+                        </div>
+                        <div class="wp-reranking-summary-item">
+                            <strong>Hybrid</strong>
+                            <span><?php echo esc_html($summary_methods['FTS+VECTOR'] ?? 0); ?></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wp-reranking-summary">
+                <br>
+                    <h2>How the Ranking Works</h2>
+                    <ul style="font-size:16px;color:#374151;line-height:1.8;margin-top:8px;">
+                        <li>Blends full-text (FTS) and vector search results into a single ranked list.</li>
+                        <li>Takes the top results from each engine and normalizes scores to a 0‑to‑1 scale.</li>
+                        <li>Applies your chosen weighting (e.g., 3:1 means FTS counts three times as much as vector).</li>
+                        <li>Adds a small boost if the query appears in the title.</li>
+                        <li>The combined score determines the final order—so a post with a lower raw FTS score can still rank higher if its vector score and title boost are strong enough.</li>
+                    </ul>
+                </div>
                 <div class="wp-reranking-sql">
                     <h2>FTS SQL Used</h2>
                     <p style="font-size:12px;color:#555;margin-bottom:12px;">SQL used for the full-text lookup.</p>
                     <pre><?php echo esc_html($formatted_sql); ?></pre>
                 </div>
-                <h2>Reranking Calculation Steps</h2>
+                <h2 class="wp-reranking-section-title">Reranking Calculation Steps</h2>
                 <?php if (isset($output['steps'])): ?>
                     <?php foreach ($output['steps'] as $step): ?>
-                        <h3><?php echo esc_html($step['step']); ?></h3>
-                        <p><?php echo esc_html($step['description']); ?></p>
-                        <?php if (isset($step['fulltext_results'])): ?>
-                            <h4>Fulltext Results:</h4>
-                            <pre><?php echo esc_html(json_encode($step['fulltext_results'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
-                        <?php if (isset($step['vector_results'])): ?>
-                            <h4>Vector Results:</h4>
-                            <pre><?php echo esc_html(json_encode($step['vector_results'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
-                        <?php if (isset($step['max_relevance'])): ?>
-                            <p><strong>Max Relevance:</strong> <?php echo esc_html($step['max_relevance']); ?></p>
-                            <p><strong>Max Similarity:</strong> <?php echo esc_html($step['max_similarity']); ?></p>
-                        <?php endif; ?>
-                        <?php if (isset($step['merged_items'])): ?>
-                            <h4>Merged Items:</h4>
-                            <pre><?php echo esc_html(json_encode($step['merged_items'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
-                        <?php if (isset($step['normalized_items'])): ?>
-                            <h4>Normalized Items with Combined Scores:</h4>
-                            <pre><?php echo esc_html(json_encode($step['normalized_items'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
-                        <?php if (isset($step['sorted_items'])): ?>
-                            <h4>Sorted Items:</h4>
-                            <pre><?php echo esc_html(json_encode($step['sorted_items'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
-                        <?php if (isset($step['final_results'])): ?>
-                            <h4>Final Results with Positions:</h4>
-                            <pre><?php echo esc_html(json_encode($step['final_results'], JSON_PRETTY_PRINT)); ?></pre>
-                        <?php endif; ?>
+                        <div class="wp-reranking-step">
+                            <h3><?php echo esc_html($step['step']); ?></h3>
+                            <p><?php echo esc_html($step['description']); ?></p>
+                            <?php if (isset($step['max_relevance'])): ?>
+                                <div class="wp-reranking-badges">
+                                    <span class="wp-reranking-badge wp-reranking-badge--highlight">Max Relevance: <?php echo esc_html(number_format((float) $step['max_relevance'], 4)); ?></span>
+                                    <span class="wp-reranking-badge wp-reranking-badge--highlight">Max Similarity: <?php echo esc_html(number_format((float) $step['max_similarity'], 4)); ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (isset($step['normalized_items']) && is_array($step['normalized_items'])): ?>
+                                <?php
+                                $normalized_has_method = false;
+                                foreach ($step['normalized_items'] as $normalized_item) {
+                                    $normalized_method_value = isset($normalized_item['method']) ? $normalized_item['method'] : 'N/A';
+                                    if (!in_array($normalized_method_value, array('N/A', 'UNKNOWN'), true)) {
+                                        $normalized_has_method = true;
+                                        break;
+                                    }
+                                }
+                                ?>
+                                <table class="wp-reranking-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Post</th>
+                                            <?php if ($normalized_has_method): ?>
+                                                <th>Method</th>
+                                            <?php endif; ?>
+                                            <th>Relevance</th>
+                                            <th>Similarity</th>
+                                            <th>Norm Relevance</th>
+                                            <th>Norm Similarity</th>
+                                            <th>Weighted FTS</th>
+                                            <th>Weighted Vector</th>
+                                            <th>Boost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($step['normalized_items'] as $normalized_item): ?>
+                                            <tr>
+                                                <td><?php echo esc_html($normalized_item['post_title'] ?? ($normalized_item['post_id'] ?? 'Unknown')); ?></td>
+                                                <?php if ($normalized_has_method): ?>
+                                                    <td><?php echo esc_html($normalized_item['method'] ?? 'N/A'); ?></td>
+                                                <?php endif; ?>
+                                                <td><?php echo esc_html(number_format((float) ($normalized_item['relevance_score'] ?? 0), 4)); ?></td>
+                                                <td><?php echo esc_html(number_format((float) ($normalized_item['similarity_score'] ?? 0), 4)); ?></td>
+                                                <td><?php echo esc_html($normalized_item['normalized_relevance'] ?? ''); ?></td>
+                                                <td><?php echo esc_html($normalized_item['normalized_similarity'] ?? ''); ?></td>
+                                                <td><?php echo esc_html($normalized_item['weighted_relevance'] ?? ''); ?></td>
+                                                <td><?php echo esc_html($normalized_item['weighted_similarity'] ?? ''); ?></td>
+                                                <td><?php echo esc_html($normalized_item['title_boost'] ?? ''); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                                <?php if ($normalized_has_method): ?>
+                                    <p style="font-size:12px;color:#6b7280;margin-top:8px;">Method shows which engine(s) contributed to the score: FTS = full-text only, VECTOR = vector only, FTS+VECTOR = both.</p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if (isset($step['fulltext_results'])): ?>
+                                <details>
+                                    <summary>Fulltext Results (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['fulltext_results'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                            <?php if (isset($step['vector_results'])): ?>
+                                <details>
+                                    <summary>Vector Results (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['vector_results'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                            <?php if (isset($step['merged_items'])): ?>
+                                <details>
+                                    <summary>Merged Items (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['merged_items'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                            <?php if (isset($step['normalized_items'])): ?>
+                                <details>
+                                    <summary>Normalized Items (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['normalized_items'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                            <?php if (isset($step['sorted_items'])): ?>
+                                <details>
+                                    <summary>Sorted Items (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['sorted_items'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                            <?php if (isset($step['final_results'])): ?>
+                                <details>
+                                    <summary>Final Results (JSON)</summary>
+                                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($step['final_results'], JSON_PRETTY_PRINT)); ?></pre>
+                                </details>
+                            <?php endif; ?>
+                        </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <h2>Reranked Response</h2>
-                    <pre><?php echo esc_html(json_encode($output, JSON_PRETTY_PRINT)); ?></pre>
+                    <pre class="wp-reranking-code"><?php echo esc_html(json_encode($output, JSON_PRETTY_PRINT)); ?></pre>
                 <?php endif; ?>
                 <?php if (isset($output['results']) && is_array($output['results']) && !empty($output['results'])): ?>
-                    <h2>Final Results</h2>
+                    <h2 class="wp-reranking-section-title">Final Results</h2>
                     <div class="wp-reranking-results">
                         <?php foreach ($output['results'] as $result): ?>
+                            <?php
+                            $normalized_relevance = isset($result['normalized_relevance']) ? (float) $result['normalized_relevance'] : null;
+                            $normalized_similarity = isset($result['normalized_similarity']) ? (float) $result['normalized_similarity'] : null;
+                            $weighted_relevance = isset($result['weighted_relevance'])
+                                ? (float) $result['weighted_relevance']
+                                : ($normalized_relevance !== null ? $normalized_relevance * $summary_fts_weight : 0);
+                            $weighted_similarity = isset($result['weighted_similarity'])
+                                ? (float) $result['weighted_similarity']
+                                : ($normalized_similarity !== null ? $normalized_similarity * $summary_vector_weight : 0);
+                            $title_boost = isset($result['title_boost']) ? (float) $result['title_boost'] : 0;
+                            $combined_score = $weighted_relevance + $weighted_similarity + $title_boost;
+                            ?>
                             <div class="wp-reranking-card">
                                 <h4><?php echo esc_html($result['post_title'] ?? 'Untitled'); ?></h4>
                                 <div class="wp-reranking-meta">
@@ -1017,12 +1238,25 @@ class WP_Reranking_Plugin {
                                     <span class="wp-reranking-badge">Method: <?php echo esc_html($result['method'] ?? 'UNKNOWN'); ?></span>
                                     <span class="wp-reranking-badge">Relevance: <?php echo esc_html(number_format($result['relevance_score'] ?? 0, 4)); ?></span>
                                     <span class="wp-reranking-badge">Similarity: <?php echo esc_html(number_format($result['similarity_score'] ?? 0, 4)); ?></span>
+                                    <?php if (!empty($result['normalized_relevance'])): ?>
+                                        <span class="wp-reranking-badge wp-reranking-badge--highlight">Norm FTS: <?php echo esc_html(number_format((float) $result['normalized_relevance'], 4)); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($result['normalized_similarity'])): ?>
+                                        <span class="wp-reranking-badge wp-reranking-badge--highlight">Norm Vector: <?php echo esc_html(number_format((float) $result['normalized_similarity'], 4)); ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="wp-reranking-excerpt">
                                     <?php
                                     $excerpt = $result['excerpt'] ?? $result['content'] ?? $result['post_content'] ?? '';
                                     echo esc_html($excerpt);
                                     ?>
+                                </div>
+                                <div class="wp-reranking-explain">
+                                    <?php if ($normalized_relevance !== null || $normalized_similarity !== null): ?>
+                                        Ranked #<?php echo esc_html($result['position'] ?? ''); ?> because normalized FTS <?php echo esc_html(number_format($normalized_relevance ?? 0, 4)); ?> × <?php echo esc_html($summary_fts_weight); ?> = <?php echo esc_html(number_format($weighted_relevance, 4)); ?>, normalized Vector <?php echo esc_html(number_format($normalized_similarity ?? 0, 4)); ?> × <?php echo esc_html($summary_vector_weight); ?> = <?php echo esc_html(number_format($weighted_similarity, 4)); ?>, plus title boost <?php echo esc_html(number_format($title_boost, 4)); ?>. Combined score ≈ <?php echo esc_html(number_format($combined_score, 4)); ?>.
+                                    <?php else: ?>
+                                        Ranked by combined normalized scores from FTS and vector search, plus any title match boost.
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
