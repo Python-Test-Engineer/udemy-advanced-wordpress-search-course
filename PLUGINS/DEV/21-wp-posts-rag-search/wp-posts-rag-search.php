@@ -894,7 +894,7 @@ class RAG_Search_Assistant {
                 'messages' => array(
                     array(
                         'role' => 'system',
-                        'content' => "You are a helpful assistant that answers questions based on the provided context. If the context doesn't contain enough information to answer the question, respond with 'My RAG does not have the answer.'"
+                        'content' => "You are a helpful assistant that answers questions based on the provided context. Start the answer with a paragraph thanking the user for their question and that you are keen to help them. If the context doesn't contain enough information to answer the question, respond with 'I do not have enough information to answer this question.'"
                     ),
                     array(
                         'role' => 'user',
