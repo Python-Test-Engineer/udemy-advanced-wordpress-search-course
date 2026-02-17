@@ -293,12 +293,13 @@ class WP_REST_RAG_Endpoints {
                                 $grouped_indexes[$index->Key_name]['columns'][] = $index->Column_name;
                             }
                             foreach ($grouped_indexes as $index_name => $index_info): 
-                                $is_fulltext = (strpos($index_name, 'fulltext') !== false);
+                                $index_type = isset($index_info['type']) ? strtoupper($index_info['type']) : '';
+                                $is_fulltext = ($index_type === 'FULLTEXT');
                             ?>
                                 <tr>
                                     <td>
                                         <strong><?php echo esc_html($index_name); ?></strong>
-                                        <?php if ($index_name === 'fulltext_search_idx'): ?>
+                                        <?php if ($is_fulltext): ?>
                                             <span style="color: #0073aa;">(FTS)</span>
                                         <?php endif; ?>
                                     </td>
@@ -1103,19 +1104,34 @@ class WP_REST_RAG_Endpoints {
     }
 
     /**
-     * Check if full-text index exists
+     * Check if any full-text index exists
      */
     private function check_fulltext_index() {
-        global $wpdb;
+        return !empty($this->get_fulltext_index_names());
+    }
 
-        $index_check = $wpdb->get_results(
-            $wpdb->prepare(
-                "SHOW INDEX FROM " . RAG_TABLE_NAME . " WHERE Key_name = %s",
-                'fulltext_search_idx'
-            )
-        );
+    /**
+     * Get FULLTEXT index names on the RAG table.
+     */
+    private function get_fulltext_index_names() {
+        $indexes = $this->get_all_indexes();
+        $names = array();
 
-        return !empty($index_check);
+        if (empty($indexes)) {
+            return $names;
+        }
+
+        foreach ($indexes as $index) {
+            if (!isset($index->Index_type) || !isset($index->Key_name)) {
+                continue;
+            }
+
+            if (strtoupper($index->Index_type) === 'FULLTEXT') {
+                $names[$index->Key_name] = true;
+            }
+        }
+
+        return array_keys($names);
     }
 
     /**
@@ -1136,20 +1152,29 @@ class WP_REST_RAG_Endpoints {
     private function delete_fulltext_index() {
         global $wpdb;
 
-        if (!$this->check_fulltext_index()) {
+        $fulltext_indexes = $this->get_fulltext_index_names();
+
+        if (empty($fulltext_indexes)) {
             return array(
                 'success' => false,
                 'message' => 'Full-text index does not exist.'
             );
         }
 
-        $sql = "ALTER TABLE " . RAG_TABLE_NAME . " DROP INDEX fulltext_search_idx";
-        $result = $wpdb->query($sql);
+        $errors = array();
+        foreach ($fulltext_indexes as $index_name) {
+            $sql = "ALTER TABLE " . RAG_TABLE_NAME . " DROP INDEX `{$index_name}`";
+            $result = $wpdb->query($sql);
 
-        if ($result === false) {
+            if ($result === false) {
+                $errors[] = $index_name . ': ' . $wpdb->last_error;
+            }
+        }
+
+        if (!empty($errors)) {
             return array(
                 'success' => false,
-                'message' => 'Failed to delete full-text index: ' . $wpdb->last_error
+                'message' => 'Failed to delete full-text index(es): ' . implode('; ', $errors)
             );
         }
 

@@ -13,8 +13,11 @@ if (!defined('ABSPATH')) {
 class WP_Reranking_Plugin {
     // Admin page slug for the reranker menu.
     private $menu_slug = 'wp-reranking';
+    private $rag_table_name;
 
     public function __construct() {
+        global $wpdb;
+        $this->rag_table_name = $wpdb->prefix . 'posts_rag';
         // Register REST endpoints.
         add_action('rest_api_init', array($this, 'register_routes'));
         // Register admin menu.
@@ -56,6 +59,55 @@ class WP_Reranking_Plugin {
         }
 
         error_log('[WP Reranking] ' . $message);
+    }
+
+    /**
+     * Get all indexes on the RAG table.
+     */
+    private function get_all_indexes() {
+        global $wpdb;
+
+        return $wpdb->get_results(
+            "SHOW INDEX FROM {$this->rag_table_name}"
+        );
+    }
+
+    /**
+     * Return grouped index details with FULLTEXT detection.
+     */
+    private function get_grouped_indexes() {
+        $indexes = $this->get_all_indexes();
+
+        if (empty($indexes)) {
+            return array();
+        }
+
+        $grouped = array();
+        foreach ($indexes as $index) {
+            $name = $index->Key_name ?? '';
+            if ($name === '') {
+                continue;
+            }
+
+            if (!isset($grouped[$name])) {
+                $grouped[$name] = array(
+                    'columns' => array(),
+                    'type' => $index->Index_type ?? 'UNKNOWN',
+                    'is_fulltext' => false
+                );
+            }
+
+            if (!empty($index->Column_name)) {
+                $grouped[$name]['columns'][] = $index->Column_name;
+            }
+
+            $index_type = isset($index->Index_type) ? strtoupper($index->Index_type) : '';
+            if ($index_type === 'FULLTEXT' || stripos($name, 'fulltext') !== false) {
+                $grouped[$name]['is_fulltext'] = true;
+            }
+        }
+
+        return $grouped;
     }
 
     public function handle_rerank_request(WP_REST_Request $request) {
@@ -770,6 +822,14 @@ class WP_Reranking_Plugin {
         $output = null;
         $error = null;
         $sql_output = 'none';
+        $grouped_indexes = $this->get_grouped_indexes();
+        $has_fulltext_indexes = false;
+        foreach ($grouped_indexes as $index_info) {
+            if (!empty($index_info['is_fulltext'])) {
+                $has_fulltext_indexes = true;
+                break;
+            }
+        }
 
         if (isset($_GET['rerank_submit'])) {
             $weights = $this->parse_weight_option($weight_option);
@@ -1003,9 +1063,73 @@ class WP_Reranking_Plugin {
                     margin-bottom: 8px;
                     font-size: 18px;
                 }
+                .toplevel_page_wp-reranking .wp-reranking-status {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-status table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    font-size: 12px;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-status th,
+                .toplevel_page_wp-reranking .wp-reranking-status td {
+                    padding: 8px 10px;
+                    border-bottom: 1px solid #e2e8f0;
+                    text-align: left;
+                }
+                .toplevel_page_wp-reranking .wp-reranking-status th {
+                    background: #eef2ff;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                    letter-spacing: 0.04em;
+                    color: #4c1d95;
+                }
             </style>
             <h1>Reranker Test Page</h1>
             <p>Fetch hybrid search results from <code><?php echo esc_html(home_url('/wp-json/search/v1/hybrid-search')); ?></code> and rerank them.</p>
+            <div class="wp-reranking-status">
+                <h2>Full-Text Index Status</h2>
+                <p style="margin:6px 0 0;">Table: <code><?php echo esc_html($this->rag_table_name); ?></code></p>
+                <p style="margin:6px 0 0;">
+                    Status:
+                    <strong style="color: <?php echo $has_fulltext_indexes ? '#16a34a' : '#dc2626'; ?>;">
+                        <?php echo $has_fulltext_indexes ? '✅ Full-text indexes detected' : '❌ No full-text indexes found'; ?>
+                    </strong>
+                </p>
+                <?php if (!empty($grouped_indexes)): ?>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Index Name</th>
+                                <th>Columns</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($grouped_indexes as $index_name => $index_info): ?>
+                                <tr>
+                                    <td>
+                                        <?php echo esc_html($index_name); ?>
+                                        <?php if (!empty($index_info['is_fulltext'])): ?>
+                                            <span style="color:#2563eb; font-weight:600;">(Full-Text)</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo esc_html(implode(', ', $index_info['columns'])); ?></td>
+                                    <td><?php echo esc_html($index_info['type']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+                <?php if (!$has_fulltext_indexes): ?>
+                    <p style="margin-top:10px;color:#64748b;">Create a FULLTEXT index on the posts RAG table to enable full-text search.</p>
+                <?php endif; ?>
+            </div>
             <!-- Simple admin-side console log for quick debugging -->
             <script>
                 console.log('WP Reranking admin page loaded.');
