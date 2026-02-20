@@ -882,7 +882,7 @@ class RAG_Search_Assistant {
         if (empty($api_key)) {
             return "Please configure your OpenAI API key in the 20 CAPSTONE plugin settings.";
         }
-        
+        #region API
         // Call OpenAI API
         $api_response = wp_remote_post('https://api.openai.com/v1/chat/completions', array(
             'headers' => array(
@@ -924,6 +924,6 @@ class RAG_Search_Assistant {
         return "My RAG does not have the answer.";
     }
 }
-
+    #endregion
 // Initialize the plugin
 new RAG_Search_Assistant();
